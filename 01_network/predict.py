@@ -7,6 +7,7 @@ import numpy as np
 import os
 import sys
 import pymongo
+from write_candidates import WriteCandidates
 
 setup_dir = os.path.dirname(os.path.realpath(__file__))
 
