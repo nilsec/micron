@@ -8,24 +8,31 @@ import sys
 import time
 import datetime
 import pymongo
+import configparser
+from shutil import copyfile
 
-logging.basicConfig(level=logging.INFO)
-# logging.getLogger('daisy').setLevel(logging.DEBUG)
+#logging.basicConfig(level=logging.INFO)
+logging.getLogger('daisy').setLevel(logging.DEBUG)
 
 def predict_blockwise(
+        base_dir,
         experiment,
-        setup,
+        setup_number,
         iteration,
-        raw_file,
-        raw_dataset,
-        out_file,
-        file_name,
-        num_workers,
-        db_host,
+        in_container_spec,
+        in_container,
+        in_dataset,
+        in_offset,
+        in_size,
+        out_container,
         db_name,
+        db_host,
+        singularity_container,
+        num_cpus,
+        num_cache_workers,
+        num_block_workers,
         queue,
-        auto_file=None,
-        auto_dataset=None):
+        predict_config_hash):
 
     '''Run prediction in parallel blocks. Within blocks, predict in chunks.
 
@@ -78,28 +85,18 @@ def predict_blockwise(
             gpu_tesla, gpu_tesla_large)
     '''
 
-    experiment_dir = '../' + experiment
-    data_dir = os.path.join(experiment_dir, '01_data')
-    train_dir = os.path.join(experiment_dir, '02_train')
-    network_dir = os.path.join(experiment, setup, str(iteration))
-
-    raw_file = os.path.abspath(raw_file)
-    out_file = os.path.abspath(os.path.join(out_file, setup, str(iteration), file_name))
-
-    setup = os.path.abspath(os.path.join(train_dir, setup))
+    setup = "setup_{}".format(setup_number)
+    experiment_dir = os.path.join(base_dir, experiment)
+    train_dir = os.path.join(experiment_dir, '01_train', setup)
+    predict_dir = os.path.join(experiment_dir, '02_predict', setup)
 
     # from here on, all values are in world units (unless explicitly mentioned)
-
     # get ROI of source
-    try:
-        source = daisy.open_ds(raw_file, raw_dataset)
-    except:
-        raw_dataset = raw_dataset + '/s0'
-        source = daisy.open_ds(raw_file, raw_dataset)
+    source = daisy.open_ds(in_container_spec, in_dataset)
     logging.info('Source dataset has shape %s, ROI %s, voxel size %s'%(source.shape, source.roi, source.voxel_size))
 
-    # load config
-    with open(os.path.join(setup, 'config.json')) as f:
+    # Read network config
+    with open(os.path.join(train_dir, 'config.json')) as f:
         logging.info('Reading setup config from %s'%os.path.join(setup, 'config.json'))
         net_config = json.load(f)
     outputs = net_config['outputs']
@@ -108,7 +105,7 @@ def predict_blockwise(
     net_input_size = daisy.Coordinate(net_config['input_shape'])*source.voxel_size
     net_output_size = daisy.Coordinate(net_config['output_shape'])*source.voxel_size
     context = (net_input_size - net_output_size)/2
-    print('CONTEXT: ', context)
+    logging.info('Network context: {}'.format(context))
 
     # get total input and output ROIs
     input_roi = source.roi.grow(context, context)
@@ -126,7 +123,7 @@ def predict_blockwise(
         out_dataset = 'volumes/%s'%output_name
 
         ds = daisy.prepare_ds(
-            out_file,
+            out_container,
             out_dataset,
             output_roi,
             source.voxel_size,
@@ -156,21 +153,21 @@ def predict_blockwise(
         process_function=lambda: predict_worker(
             experiment,
             setup,
-            network_dir,
             iteration,
-            raw_file,
-            raw_dataset,
-            auto_file,
-            auto_dataset,
-            out_file,
-            out_dataset,
+            in_container,
+            in_dataset,
+            out_container,
             db_host,
             db_name,
-            queue),
+            queue,
+            singularity_container,
+            num_cpus,
+            num_cache_workers,
+            predict_config_hash),
         check_function=lambda b: check_block(
             blocks_predicted,
             b),
-        num_workers=num_workers,
+        num_workers=num_block_workers,
         read_write_conflict=False,
         fit='overhang')
 
@@ -180,113 +177,137 @@ def predict_blockwise(
 def predict_worker(
         experiment,
         setup,
-        network_dir,
         iteration,
-        raw_file,
-        raw_dataset,
-        auto_file,
-        auto_dataset,
-        out_file,
-        out_dataset,
+        in_container,
+        in_dataset,
+        out_container,
         db_host,
         db_name,
-        queue):
+        queue,
+        singularity_container,
+        num_cpus,
+        num_cache_workers,
+        predict_config_hash):
 
-    setup_dir = os.path.join('..', experiment, '02_train', setup)
-    predict_script = os.path.abspath(os.path.join(setup_dir, 'predict.py'))
+    predict_script = 'predict.py'
 
-    if raw_file.endswith('.json'):
-        with open(raw_file, 'r') as f:
-            spec = json.load(f)
-            raw_file = spec['container']
-
-    worker_config = {
+    worker_instruction = {
         'queue': queue,
-        'num_cpus': 2,
-        'num_cache_workers': 5,
-        'singularity': 'funkey/lsd:v0.8'
+        'num_cpus': num_cpus,
+        'num_cache_workers': num_cache_workers,
+        'singularity': singularity_container
     }
 
-    config = {
+    predict_instruction = {
         'iteration': iteration,
-        'raw_file': raw_file,
-        'raw_dataset': raw_dataset,
-        'auto_file': auto_file,
-        'auto_dataset': auto_dataset,
-        'out_file': out_file,
-        'out_dataset': out_dataset,
+        'in_container': in_container,
+        'in_dataset': in_dataset,
+        'out_container': out_container,
         'db_host': db_host,
         'db_name': db_name,
-        'worker_config': worker_config
+        'worker_instruction': worker_instruction
     }
 
-    # get a unique hash for this configuration
-    config_str = ''.join(['%s'%(v,) for v in config.values()])
-    config_hash = abs(int(hashlib.md5(config_str.encode()).hexdigest(), 16))
-
     worker_id = daisy.Context.from_env().worker_id
-
-    output_dir = os.path.join('.predict_blockwise', network_dir)
-
-    try:
+    output_dir = os.path.join("prediction_" + str(predict_config_hash))
+    if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    except:
-        pass
 
-    config_file = os.path.join(output_dir, '%d.config'%config_hash)
+    predict_instruction_file = os.path.join(output_dir, 'predict_instruction_{}.json'.format(worker_id))
+    log_out = os.path.join(output_dir, 'predict_blockwise_{}.out'.format(worker_id))
+    log_err = os.path.join(output_dir, 'predict_blockwise_{}.err'.format(worker_id))
 
-    log_out = os.path.join(output_dir, 'predict_blockwise_%d.out'%worker_id)
-    log_err = os.path.join(output_dir, 'predict_blockwise_%d.err'%worker_id)
+    with open(predict_instruction_file, 'w') as f:
+        json.dump(predict_instruction, f)
 
-    with open(config_file, 'w') as f:
-        json.dump(config, f)
-
-    logging.info('Running block with config %s...'%config_file)
+    logging.info('Running block for cfg {} and instruction {}...'.format(predict_config_hash, predict_instruction_file))
 
     command = [
         'run_lsf',
-        '-c', str(worker_config['num_cpus']),
+        '-s', singularity_container,
+        '-c', str(num_cpus),
         '-g', '1',
-        '-q', worker_config['queue']
+        '-q', queue
     ]
-
-    if worker_config['singularity']:
-        command += ['-s', worker_config['singularity']]
 
     command += [
         'python -u %s %s'%(
             predict_script,
-            config_file
+            predict_instruction_file
         )]
 
     daisy.call(command, log_out=log_out, log_err=log_err)
 
     logging.info('Predict worker finished')
 
-    # if things went well, remove temporary files
-    # os.remove(config_file)
-    # os.remove(log_out)
-    # os.remove(log_err)
-
 def check_block(blocks_predicted, block):
-
     done = blocks_predicted.count({'block_id': block.block_id}) >= 1
-
     return done
 
+def read_config(predict_config):
+    config = configparser.ConfigParser()
+    config.read(predict_config)
+
+    cfg_dict = {}
+
+    # Predict
+    cfg_dict["base_dir"] = config.get("Predict", "base_dir")
+    cfg_dict["experiment"] = config.get("Predict", "experiment")
+    cfg_dict["setup_number"] = int(config.getint("Predict", "setup_number"))
+    cfg_dict["iteration"] = int(config.getint("Predict", "iteration"))
+
+    # Database
+    cfg_dict["db_name"] = config.get("Database", "db_name")
+    cfg_dict["db_host"] = config.get("Database", "db_host")
+
+    # Worker
+    cfg_dict["singularity_container"] = config.get("Worker", "singularity_container")
+    cfg_dict["num_cpus"] = int(config.getint("Worker", "num_cpus"))
+    cfg_dict["num_block_workers"] = int(config.getint("Worker", "num_block_workers"))
+    cfg_dict["num_cache_workers"] = int(config.getint("Worker", "num_cache_workers"))
+    cfg_dict["queue"] = config.get("Worker", "queue")
+
+    # Data
+    cfg_dict["in_container"] = config.get("Data", "in_container")
+    cfg_dict["in_dataset"] = config.get("Data", "in_dataset")
+    cfg_dict["in_offset"] = tuple([int(v) for v in np.array(config.get("Data", "in_offset").split(", "), dtype=int)])
+    cfg_dict["in_size"] = tuple([int(v) for v in np.array(config.get("Data", "in_size").split(", "), dtype=int)])
+    cfg_dict["out_container"] = config.get("Data", "out_container")
+
+    # Create json container spec for in_data:
+    in_container_spec = {"container": cfg_dict["in_container"],
+                         "offset": cfg_dict["in_offset"],
+                         "size": cfg_dict["in_size"]}
+
+    cfg_hash = 0
+    in_container_spec_file = "in_container_spec_{}.json".format(cfg_hash)
+
+    with open(in_container_spec_file, "w+") as f:
+        json.dump(in_container_spec, f)
+
+
+    cfg_dict["in_container_spec"] = os.path.abspath(in_container_spec_file)
+
+    # Final hash
+    cfg_dict["predict_config_hash"] = cfg_hash
+
+    # Rename config file to correct hash to includes possible modifications:
+    copyfile(predict_config, 
+             os.path.join(os.path.dirname(predict_config), "predict_config_{}.ini".format(cfg_hash)))
+
+    return cfg_dict
+
+
 if __name__ == "__main__":
+    predict_config_file = sys.argv[1]
+    predict_config_dict = read_config(predict_config_file)
 
-    config_file = sys.argv[1]
-
-    with open(config_file, 'r') as f:
-        config = json.load(f)
 
     start = time.time()
 
-    predict_blockwise(**config)
+    predict_blockwise(**predict_config_dict)
 
     end = time.time()
-
     seconds = end - start
-    logging.info('Total time to predict: %f seconds' % seconds)
 
+    logging.info('Total time to predict: %f seconds' % seconds)
