@@ -9,7 +9,20 @@ def set_up_environment(base_dir,
                        experiment,
                        setup_number,
                        iteration,
-                       db_credentials=None):
+                       db_name=None,
+                       db_credentials=None,
+                       singularity_container=None,
+                       queue=None,
+                       num_cpus=None,
+                       num_cache_workers=None,
+                       num_block_workers=None,
+                       in_container=None,
+                       in_dataset=None,
+                       in_offset=(None,None,None),
+                       in_size=(None,None,None),
+                       out_container=None):
+
+    input_params = locals()
 
     predict_setup_dir = os.path.join(os.path.join(base_dir, experiment), "02_predict/setup_{}".format(setup_number))
     train_setup_dir = os.path.join(os.path.join(base_dir, experiment), "01_train/setup_{}".format(setup_number))
@@ -31,37 +44,48 @@ def set_up_environment(base_dir,
         copyfile(os.path.join(train_setup_dir, "train_net_checkpoint_{}.{}".format(iteration, sufix)), 
                  os.path.join(predict_setup_dir, "train_net_checkpoint_{}.{}".format(iteration, sufix)))
 
-    conf = create_predict_configs(base_dir,
-                                  experiment,
-                                  setup_number,
-                                  iteration,
-                                  db_credentials)
+    predict_config = create_predict_config(**input_params)
 
-    with open(os.path.join(predict_setup_dir, "config_{}.json".format(iteration)), "w+") as f:
-        json.dump(conf, f)
+    with open(os.path.join(predict_setup_dir, "predict_config_template.ini"), "w+") as f:
+        predict_config.write(f)
 
 
-def create_predict_configs(base_dir,
-                           experiment,
-                           setup_number,
-                           iteration,
-                           db_credentials=None):
+def create_predict_config(base_dir,
+                          experiment,
+                          setup_number,
+                          iteration,
+                          db_name,
+                          db_credentials,
+                          singularity_container,
+                          queue,
+                          num_cpus,
+                          num_cache_workers,
+                          num_block_workers,
+                          in_container,
+                          in_dataset,
+                          in_offset,
+                          in_size,
+                          out_container):
 
-    """
-    Create a default predict config file used
-    by predict and predict_blockwise downstream.
-    Needs to be adjusted after creation.
-    """
+    config = ConfigParser.ConfigParser()
 
+    config.add_section('Predict')
+    config.set('Predict', 'base_dir', str(os.path.abspath(base_dir)))
+    config.set('Predict', 'experiment', str(experiment))
+    config.set('Predict', 'setup_number', str(setup_number))
+    config.set('Predict', 'iteration', str(iteration))
+
+    config.add_section('Database')
+    config.set('Database', 'db_name', str(db_name))
     if db_credentials is not None:
         with open(db_credentials) as fp:
-            config = ConfigParser.ConfigParser()
-            config.readfp(fp)
+            config_db = ConfigParser.ConfigParser()
+            config_db.readfp(fp)
             credentials = {}
-            credentials["user"] = config.get("Credentials", "user")
-            credentials["password"] = config.get("Credentials", "password")
-            credentials["host"] = config.get("Credentials", "host")
-            credentials["port"] = config.get("Credentials", "port")
+            credentials["user"] = config_db.get("Credentials", "user")
+            credentials["password"] = config_db.get("Credentials", "password")
+            credentials["host"] = config_db.get("Credentials", "host")
+            credentials["port"] = config_db.get("Credentials", "port")
 
         auth_string = 'mongodb://{}:{}@{}:{}'.format(credentials["user"],
                                                      credentials["password"],
@@ -70,18 +94,27 @@ def create_predict_configs(base_dir,
 
     else:
         auth_string = 'mongodb://localhost'
+    config.set('Database', 'db_host', auth_string)
 
-    conf = {"experiment": experiment,
-            "setup": "setup_{}".format(setup_number),
-            "iteration": iteration,
-            "in_data_config": "path_to_data_config",
-            "out_file": "path_to_out_file",
-            "num_workers": 1,
-            "db_host": auth_string,
-            "db_name": "db_name",
-            "queue": "slowpoke"}
+    config.add_section('Worker')
+    config.set('Worker', 'singularity_container', str(singularity_container))
+    config.set('Worker', 'num_cpus', str(num_cpus))
+    config.set('Worker', 'num_block_workers', str(num_block_workers))
+    config.set('Worker', 'num_cache_workers', str(num_cache_workers))
+    config.set('Worker', 'queue', str(queue))
 
-    return conf
+    config.add_section('Data')
+    config.set('Data', 'in_container', str(in_container))
+    config.set('Data', 'in_dataset', str(in_dataset))
+    config.set('Data', 'in_offset', str(in_offset[0]) + ", " +\
+                                    str(in_offset[1]) + ", " +\
+                                    str(in_offset[2]))
+    config.set('Data', 'in_size', str(in_size[0]) + ", " +\
+                                  str(in_size[1]) + ", " +\
+                                  str(in_size[2]))
+    config.set('Data', 'out_container', str(out_container))
+
+    return config
 
 
 if __name__ == "__main__":
@@ -99,4 +132,4 @@ if __name__ == "__main__":
                        experiment,
                        setup_number,
                        iteration,
-                       db_credentials)
+                       db_credentials=db_credentials)
