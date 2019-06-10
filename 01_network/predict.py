@@ -9,9 +9,7 @@ import sys
 import pymongo
 from write_candidates import WriteCandidates
 
-setup_dir = os.path.dirname(os.path.realpath(__file__))
-
-with open(os.path.join(setup_dir, 'config.json'), 'r') as f:
+with open('config.json', 'r') as f:
     net_config = json.load(f)
 
 # voxels
@@ -26,7 +24,7 @@ output_size = output_shape*voxel_size
 def block_done_callback(
         db_host,
         db_name,
-        worker_config,
+        worker_instruction,
         block,
         start,
         duration):
@@ -37,7 +35,7 @@ def block_done_callback(
     db = client[db_name]
     collection = db['blocks_predicted']
 
-    document = dict(worker_config)
+    document = dict(worker_instruction)
     document.update({
         'block_id': block.block_id,
         'read_roi': (block.read_roi.get_begin(), block.read_roi.get_shape()),
@@ -52,13 +50,12 @@ def block_done_callback(
 
 def predict(
         iteration,
-        raw_file,
-        raw_dataset,
-        out_file,
-        out_dataset,
+        in_container,
+        in_dataset,
+        out_container,
         db_host,
         db_name,
-        worker_config,
+        worker_instruction,
         **kwargs):
 
     raw = ArrayKey('RAW')
@@ -71,9 +68,9 @@ def predict(
     chunk_request.add(reduced_maxima, output_size)
 
     pipeline = ZarrSource(
-                raw_file,
+                in_container,
                 datasets = {
-                    raw: raw_dataset
+                    raw: in_dataset
                     },
                 array_specs = {
                     raw: ArraySpec(interpolatable=True),
@@ -82,29 +79,32 @@ def predict(
 
     pipeline += Pad(raw, None)
     pipeline += Normalize(raw)
-    pipeline += IntensityScaleShift(raw, 2,-1) +
+    pipeline += IntensityScaleShift(raw, 2,-1)
     
-    pipeline += Predict(os.path.join(setup_dir, 'train_net_checkpoint_%d'%iteration),
+    pipeline += Predict('train_net_checkpoint_%d'%iteration,
                         inputs={
                             net_config['raw']: raw
                         },
                         outputs={
                             net_config['soft_mask']: soft_mask,
-                            net_config['reduced_maxima']: reduced_maxima
+                            net_config['pred_reduced_maxima']: reduced_maxima
                         },
-                        graph=os.path.join(setup_dir, 'config.meta')
+                        graph='config.meta',
+			max_shared_memory=(2*1024*1024*1024),
                         )
     pipeline += IntensityScaleShift(soft_mask, 255, 0)
 
     pipeline += ZarrWrite(dataset_names={
                                 soft_mask: 'volumes/soft_mask'
                                  },
-                          output_filename=out_file
+                          output_filename=out_container
                           )
 
+    """
     pipeline += WriteCandidates(maxima=reduced_maxima,
                                 db_host=db_host,
                                 db_name=db_name)
+    """
 
     pipeline += PrintProfilingStats(every=10)
 
@@ -115,11 +115,11 @@ def predict(
                         soft_mask: 'write_roi',
                         reduced_maxima: 'write_roi'
                         },
-                    num_workers=worker_config['num_cache_workers'],
+                    num_workers=worker_instruction['num_cache_workers'],
                     block_done_callback=lambda b, s, d: block_done_callback(
                         db_host,
                         db_name,
-                        worker_config,
+                        worker_instruction,
                         b, s, d))
 
     print("Starting prediction...")
@@ -128,5 +128,12 @@ def predict(
     print("Prediction finished")
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    logging.getLogger('gunpowder.nodes.hdf5like_write_base').setLevel(logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger('daisy').setLevel(logging.DEBUG)
+
+    worker_instruction = sys.argv[1]
+
+    with open(worker_instruction, 'r') as f:
+        worker_instruction = json.load(f)
+
+    predict(**worker_instruction)
