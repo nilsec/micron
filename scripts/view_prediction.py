@@ -4,7 +4,7 @@ import numpy as np
 import sys
 import os
 import configparser
-from get_nodes import get_nodes
+from db_scripts import get_graph
 from funlib.show.neuroglancer import add_layer, ScalePyramid
 
 
@@ -34,20 +34,39 @@ print("View", f_prediction)
 for dset in dsets:
     view_dsets[dset] = daisy.open_ds(f_prediction, dset)
 
-nodes = get_nodes(db_host,
-                  db_name,
-                  roi_offset,
-                  roi_size)
+nodes, edges = get_graph(db_host,
+                         db_name,
+                         roi_offset,
+                         roi_size)
 
-maxima = []
-for z,y,x,node_id in zip(nodes["z"], nodes["y"], nodes["x"], nodes["id"]):
-    maxima.append(neuroglancer.EllipsoidAnnotation(center=(x,y,z+1), 
-                                                   radii=(tuple([10] * 3)),
-                                                   id=node_id,
-                                                   segments=None
-                                                   )
-                 )
- 
+if nodes:
+    maxima = []
+    maxima_dict = {}
+    for z,y,x,node_id in zip(nodes["z"], nodes["y"], nodes["x"], nodes["id"]):
+        maxima_dict[node_id] = (x,y,z)
+        maxima.append(neuroglancer.EllipsoidAnnotation(center=(x,y,z+1), 
+                                                       radii=(tuple([10] * 3)),
+                                                       id=node_id,
+                                                       segments=None
+                                                       )
+                     )
+
+if edges:
+    k = 0
+    edge_connectors = []
+    for u, v in zip(edges["u"], edges["v"]):
+        try:
+            pos_u = maxima_dict[u]
+            pos_v = maxima_dict[v]
+
+            edge_connectors.append(neuroglancer.LineAnnotation(point_a=pos_u,
+                                                               point_b=pos_v,
+                                                               id=k,
+                                                               segments=None)
+                                  )
+            k += 1
+        except KeyError:
+            pass
 
 viewer = neuroglancer.Viewer()
 with viewer.txn() as s:
@@ -59,5 +78,10 @@ with viewer.txn() as s:
                                                       filter_by_segmentation=False,
                                                       annotation_color='#add8e6',
                                                       annotations=maxima)
+
+    s.layers['conectors'] = neuroglancer.AnnotationLayer(voxel_size=(1,1,1),
+                                                         filter_by_segmentation=False,
+                                                         annotation_color='#00ff00',
+                                                         annotations=edge_connectors)
 
 print(viewer)
