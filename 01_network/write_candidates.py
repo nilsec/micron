@@ -69,4 +69,4 @@ class WriteCandidates(gp.BatchFilter):
                 "ID=%d" % candidate_id)
 
         if len(candidates) > 0:
-            self.candidates.insert_many(cells)
+            self.candidates.insert_many(candidates)
