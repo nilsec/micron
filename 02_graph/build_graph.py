@@ -142,41 +142,10 @@ def extract_edges_in_block(
         evidence /= (len(line) * 255.)
         graph.add_edge(candidates[edge[0]][0],
                        candidates[edge[1]][0],
-                       evidence=evidence)
+                       evidence=evidence,
+                       selected=False,
+                       solved=False)
  
-    """
-    for edge in pairs:
-        pos_u_world = np.array(candidates[edge[0]][1])
-        pos_v_world = np.array(candidates[edge[1]][1])
-
-        pos_u = np.array(pos_u_world/voxel_size, dtype=int)
-        pos_v = np.array(pos_v_world/voxel_size, dtype=int)
-        dda3 = DDA3(pos_u, pos_v, scaling=voxel_size)
-        line = dda3.draw()
-        
-        evidence = 0.0
-        valid_points = 0
-        for p in line:
-            p *= voxel_size
-            if soft_mask_array.roi.contains(daisy.Coordinate(p)):
-                evidence += soft_mask_array[daisy.Coordinate(p)]
-                valid_points += 1
-            else:
-                break
-
-        # This takes care of edge effects:
-        # Can happen if block is larger than soft_mask
-        if valid_points == len(line):
-            evidence /= (len(line) * 255.)
-            graph.add_edge(candidates[edge[0]][0],
-                           candidates[edge[1]][0],
-                           evidence=evidence)
-        else:
-            logging.debug("Skip edge {} because it lies partially outside the soft mask roi".format(edge) +\
-                          " and no evidence can be acquired: " +\
-                          "u: {}, v: {}, soft_mask roi: {}".format(pos_u_world, pos_v_world, soft_mask_array.roi))
-    """
-
     logger.info("Found %d edges", graph.number_of_edges())
 
     logger.info(
