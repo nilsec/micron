@@ -6,12 +6,17 @@ import daisy
 from daisy.persistence import MongoDbGraphProvider
 
 logger = logging.getLogger(__name__)
-
 START_EDGE = (-1, -1, {})
 
 class Solver(object):
-    def __init__(self, graph):
+    def __init__(self, graph, evidence_factor, comb_angle_factor, start_edge_prior, selection_cost):
         self.graph = graph
+        self.evidence_factor = evidence_factor
+        self.comb_angle_factor = comb_angle_factor
+        self.start_edge_prior = start_edge_prior
+        self.selection_cost = selection_cost
+        
+
         self.nodes = {v: v_data for v, v_data in self.graph.nodes(data=True) if 'z' in v_data}
         # Only consider edges that are fully contained in context - 
         # this does not affect anything just that potentially a larger context has to be chosen
@@ -21,9 +26,99 @@ class Solver(object):
         self.edge_id = {e: k for k, e in enumerate(self.edges_fully_contained)}
         self.edge_id[(START_EDGE[0], START_EDGE[1])] = -1
         self.n_triplets = 0
+        
+
+        self.backend = None
+        self.triplets = None
+        self.t_center_conflicts = None
+        self.t_selected = None
+        self.t_solved = None
+        self.v_selected = None
+        self.e_selected = None
+        self.center_to_t = None
+        self.t_to_center = None
+        self.t_to_e = None
+        self.e_to_t = None
+        self.continuation_constraints = None
 
 
-    def create_indicators(self):
+    def initialize(self):
+        self.__create_indicators()
+        self.__get_continuation_constraints()
+
+        self.backend = pylp.create_linear_solver(pylp.Preference.Gurobi)
+        self.backend.initialize(self.n_triplets, pylp.VariableType.Binary)
+        self.backend.set_num_threads(1)
+        self.objective = pylp.LinearObjective(self.n_triplets)
+        self.constraints = pylp.LinearConstraints()
+
+        for t in self.triplets.keys():
+            self.objective.set_coefficient(t, self.get_cost(t))
+
+            constraint = pylp.LinearConstraint()
+            if t in self.t_selected:
+                constraint.set_coefficient(t, 1)
+                constraint.set_relation(pylp.Relation.Equal)
+                constraint.set_value(1)
+                self.constraints.add(constraint)
+
+        self.backend.set_objective(self.objective)
+
+        for conflict in self.t_center_conflicts:
+            constraint = pylp.LinearConstraint()
+
+            all_solved = True
+            for t in conflict:
+                if not t in self.t_solved:
+                    all_solved = False
+                constraint.set_coefficient(t, 1)
+
+            if not all_solved:
+                constraint.set_relation(pylp.Relation.LessEqual)
+                constraint.set_value(1)
+                self.constraints.add(constraint)
+
+        for continuation_constraint in self.continuation_constraints:
+            t_l = continuation_constraint["t_l"]
+            t_r = continuation_constraint["t_r"]
+
+            all_solved = np.all([t in self.t_solved for t in (t_l + t_r)])
+            if not all_solved:
+                constraint = pylp.LinearConstraint()
+                for t in t_l:
+                    constraint.set_coefficient(t, 1)
+                for t in t_r:
+                    constraint.set_coefficient(t, -1)
+
+                constraint.set_relation(pylp.Relation.Equal)
+                constraint.set_value(0)
+                self.constraints.add(constraint)
+
+        for must_pick_one in self.e_selected + self.v_selected:
+            constraint = pylp.LinearConstraint()
+
+            for t in must_pick_one:
+                constraint.set_coefficient(t, 1)
+
+            constraint.set_relation(pylp.Relation.GreaterEqual)
+            constraint.set_value(1)
+            self.constraints.add(constraint)
+
+        self.backend.set_constraints(self.constraints)
+
+
+    def solve(self, time_limit=None):
+        logger.info("solve with: " + str(len(self.constraints)) + " constraints.")
+        logger.info("and " + str(self.n_triplets) + " variables")
+
+        if time_limit != None:
+            self.backend.set_timeout(time_limit)
+
+        solution, msg = self.backend.solve()
+        logger.info("SOLVED with status: " + msg)
+                    
+
+    def __create_indicators(self):
         v_selected = []
         e_selected = []
         t_selected = []
@@ -155,52 +250,61 @@ class Solver(object):
                 "t_to_e": t_to_e,
                 "e_to_t": e_to_t}
 
-        return triplets, t_center_conflicts, t_selected, t_solved, v_selected, e_selected, maps
+        self.triplets = triplets
+        self.t_center_conflicts = t_center_conflicts
+        self.t_selected = t_selected
+        self.t_solved = t_solved
+        self.v_selected = v_selected
+        self.e_selected = e_selected
+        self.center_to_t = center_to_t
+        self.t_to_center = t_to_center
+        self.t_to_e = t_to_e
+        self.e_to_t = e_to_t
 
 
-    def get_continuation_constraints(self, e_to_t, t_to_center):
+    def __get_continuation_constraints(self):
         continuation_constraints = []
 
         for e in self.edges_fully_contained:
-            e_triplets = e_to_t[e]
+            e_triplets = self.e_to_t[e]
             
             v_l = e[0]
             v_r = e[1]
 
-            t_l = [t for t in e_triplets if t_to_center[t] == v_l]
-            t_r = [t for t in e_triplets if t_to_center[t] == v_r]
+            t_l = [t for t in e_triplets if self.t_to_center[t] == v_l]
+            t_r = [t for t in e_triplets if self.t_to_center[t] == v_r]
 
             assert(len(t_l) + len(t_r) == len(e_triplets))
             t_rl = {"t_l": t_l, "t_r": t_r}
             continuation_constraints.append(t_rl)
 
-        return continuation_constraints
+        self.continuation_constraints = continuation_constraints
 
 
-    def get_cost(self, t, t_to_e, t_to_center, evidence_factor, comb_angle_factor, start_edge_prior, selection_cost):
-        e_in_t = t_to_e[t]
+    def get_cost(self, t):
+        e_in_t = self.t_to_e[t]
         e_data_in_t = [self.graph.get_edge_data(e[0], e[1]) for e in e_in_t]
         assert(len(e_data_in_t) == 2)
 
         if (START_EDGE[0], START_EDGE[1]) in e_in_t:
             e_data_in_t.remove(None)
             assert(len(e_data_in_t) == 1)
-            edge_cost = evidence_factor * e_data_in_t[0]["evidence"] + 2.0 * start_edge_prior
+            edge_cost = self.evidence_factor * e_data_in_t[0]["evidence"] + 2.0 * self.start_edge_prior
             comb_edge_cost = 0.0
 
         else:
             # Edge Cost:
             e_evidence_in_t = [e["evidence"] for e in e_data_in_t]
-            edge_cost = np.sum(e_evidence_in_t) * evidence_factor
+            edge_cost = np.sum(e_evidence_in_t) * self.evidence_factor
 
             # Edge Combination cost:
-            v_center = t_to_center[t]
+            v_center = self.t_to_center[t]
             v_data_in_t = [(v, self.nodes[v]) for v in [e_in_t[0][0], e_in_t[0][1], e_in_t[1][0], e_in_t[1][1]]]
             angle = self.__get_angle(e_in_t[0], e_in_t[1], v_center)
 
-            comb_edge_cost = (angle * comb_angle_factor)**2
+            comb_edge_cost = (angle * self.comb_angle_factor)**2
             
-        return (1./2.) * edge_cost + comb_edge_cost + selection_cost
+        return (1./2.) * edge_cost + comb_edge_cost + self.selection_cost
 
 
     def __get_angle(self, e1, e2, v_center):
@@ -249,15 +353,9 @@ def get_graph(db_host="mongodb://ecksteinn:ecksteinn@10.150.100.155:27017",
         return graph
 
 
-
-
-
-
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     graph = get_graph()
-    solver = Solver(graph)
-    triplets, t_center_conflicts, t_selected, t_solved, v_selected, e_selected, maps = solver.create_indicators()
-    continuation_constraints = solver.get_continuation_constraints(maps["e_to_t"], maps["t_to_center"])
-    print(solver.get_cost(10, maps["t_to_e"], maps["t_to_center"], 1.0, 1.0, 1.0, 1.0))
-
-    #print(continuation_constraints)
+    solver = Solver(graph, 1,1,1,1)
+    solver.initialize()
+    solver.solve()
