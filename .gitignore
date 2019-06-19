@@ -1,2 +1,5 @@
 *.swp
 *.ini
+*.img
+*.pyc
+*.log
