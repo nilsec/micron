@@ -2,6 +2,8 @@ import os
 import sys
 from shutil import copyfile
 
+# Needs documentation - use argparse
+
 def set_up_environment(base_dir,
                        experiment,
                        setup_number):
