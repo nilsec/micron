@@ -1,0 +1,14 @@
+numpy
+scipy
+cython
+pymongo
+click
+ConfigArgParse
+ConfigParser
+pytest
+pytest-cov
+flake8
+-e git+https://github.com/funkelab/daisy.git@master#egg=daisy
+-e git+https://github.com/funkey/zarr.git@master#egg=zarr
+-e git+https://github.com/funkelab/funlib.segment.git@master#egg=funlib.segment
+-e git+https://github.com/funkelab/funlib.show.neuroglancer.git@master#egg=funlib.show.neuroglancer

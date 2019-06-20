@@ -2,13 +2,28 @@ import os
 import sys
 from shutil import copyfile
 import json
-import ConfigParser
+import configargparse
+
+p = configargparse.ArgParser(default_config_files=['~/.micron'])
+p.add('-d', '--base_dir', required=False, 
+      help='base directory for storing micron experiments, defaults to ``~/micron_experiments``',
+      default='~/micron_experiments')
+p.add('-e', required=True, help='name of the experiment, e.g. fafb, defaults to ``base``')
+p.add('-t', required=True, help='train setup number to use for this prediction')
+p.add('-i', required=True, help='iteration checkpoint number to use for this prediction')
+p.add('-p', required=True, help='predict number/id to use for this prediction')
+p.add('-c', required=False, action='store_true', help='clean up - remove specified predict setup')
+p.add('--db_name', required=False, 
+      help='name of the database to write the prediction to, defaults to ``{experiment}_{train-number}_{predict-number}``')
+p.add('--db_credentials', required=False, 
+      help='database credential string')
 
 
 def set_up_environment(base_dir,
                        experiment,
-                       setup_number,
+                       train_number,
                        iteration,
+                       predict_number,
                        db_name=None,
                        db_credentials=None,
                        singularity_container=None,
@@ -24,8 +39,8 @@ def set_up_environment(base_dir,
 
     input_params = locals()
 
-    predict_setup_dir = os.path.join(os.path.join(base_dir, experiment), "02_predict/setup_{}".format(setup_number))
-    train_setup_dir = os.path.join(os.path.join(base_dir, experiment), "01_train/setup_{}".format(setup_number))
+    predict_setup_dir = os.path.join(os.path.join(base_dir, experiment), "02_predict/train_{}/predict_{}".format(train_number, predict_number))
+    train_setup_dir = os.path.join(os.path.join(base_dir, experiment), "01_train/train_{}".format(train_number))
     train_checkpoint = os.path.join(train_setup_dir, "train_net_checkpoint_{}.meta".format(iteration)) 
 
     if not os.path.exists(train_checkpoint):
@@ -34,9 +49,9 @@ def set_up_environment(base_dir,
     if not os.path.exists(predict_setup_dir):
         os.makedirs(predict_setup_dir)
 
-    copyfile("01_network/predict.py", os.path.join(predict_setup_dir, "predict.py"))
-    copyfile("01_network/predict_blockwise.py", os.path.join(predict_setup_dir, "predict_blockwise.py"))
-    copyfile("01_network/write_candidates.py", os.path.join(predict_setup_dir, "write_candidates.py"))
+    copyfile("network/predict.py", os.path.join(predict_setup_dir, "predict.py"))
+    #copyfile("network/predict_blockwise.py", os.path.join(predict_setup_dir, "predict_blockwise.py"))
+    #copyfile("network/write_candidates.py", os.path.join(predict_setup_dir, "write_candidates.py"))
     for sufix in ["json", "meta"]:
         copyfile(os.path.join(train_setup_dir, "config.{}".format(sufix)), 
                  os.path.join(predict_setup_dir, "config.{}".format(sufix)))
