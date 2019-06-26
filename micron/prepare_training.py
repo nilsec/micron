@@ -42,7 +42,13 @@ def set_up_environment(base_dir,
     setup_dir = os.path.join(base_dir, experiment, "01_train/train_{}".format(train_number))
 
     if clean_up:
-        if click.confirm('Are you sure you want to remove {} and all its contents?'.format(setup_dir), default=False):
+        if __name__ == "__main__":
+            if click.confirm('Are you sure you want to remove {} and all its contents?'.format(setup_dir), default=False):
+                rmtree(setup_dir)
+            else:
+                print("Abort clean up.")
+                return
+        else:
             rmtree(setup_dir)
     else:
         if not (os.path.exists(setup_dir)):
@@ -53,8 +59,11 @@ def set_up_environment(base_dir,
         else:
             raise ValueError("Cannot create setup {}, setup exists already.".format(setup_dir))
 
-        copyfile("network/mknet.py", os.path.join(setup_dir, "mknet.py"))
-        copyfile("network/train.py", os.path.join(setup_dir, "train.py"))
+        this_dir = os.path.dirname(__file__)
+        copyfile(os.path.join(this_dir, "network/mknet.py"), os.path.join(setup_dir, "mknet.py"))
+        copyfile(os.path.join(this_dir, "network/train_pipeline.py"), os.path.join(setup_dir, "train_pipeline.py"))
+        copyfile(os.path.join(this_dir, "network/train.py"), os.path.join(setup_dir, "train.py"))
+
 
 if __name__ == "__main__":
     options = p.parse_args()

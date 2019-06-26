@@ -2,7 +2,7 @@ from funlib.learn.tensorflow import models
 import tensorflow as tf
 import os
 import json
-from nms import max_detection
+from micron.network import max_detection
 import numpy as np
 
 
@@ -117,4 +117,4 @@ if __name__ == "__main__":
     # Predict:
     z = 0 # Enlarge for prediction
     xy = 0 
-    create_network((32+z, 322+xy, 322+xy), 'config', 0, [40,4,4], [1,1,10,10,1], 0.5)
+    create_network((32+z, 322+xy, 322+xy), 'predict_net', 0, [40,4,4], [1,1,10,10,1], 0.5)
