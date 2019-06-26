@@ -21,7 +21,7 @@ setup(
         'daisy',
         'ConfigParser',
         'neuroglancer',
-        'funlib.show.neuroglancer'
+        'funlib.show.neuroglancer',
         'scipy',
         'pymongo',
         'ConfigArgParse',

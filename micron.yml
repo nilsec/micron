@@ -13,8 +13,9 @@ dependencies:
     - pip
 	- ConfigArgParse
     - ConfigParser
+    - mlpack
 	- pip:
 		- "--editable=git+git://github.com/funkelab/daisy.git@master#egg=daisy"
 		- "--editable=git+git://github.com/funkey/zarr.git@master#egg=zarr"
-		- "--editable=git+git://github.com/funkelab/funlib.segment.git@master#egg=funlib.segment"
+		- "--editable=git+git://github.com/funkelab/funlib.segment.git@master#egg=funlib.learn.tensorflow"
 		- "--editable=git+git://github.com/funkelab/funlib.show.neuroglancer.git@master#egg=funlib.show.neuroglancer"
