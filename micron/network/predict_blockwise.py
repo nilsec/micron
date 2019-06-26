@@ -174,7 +174,7 @@ def predict_blockwise(
             b),
         num_workers=num_block_workers,
         read_write_conflict=False,
-        fit='overhang')
+        fit='valid')
 
     if not succeeded:
         raise RuntimeError("Prediction failed for (at least) one block")
