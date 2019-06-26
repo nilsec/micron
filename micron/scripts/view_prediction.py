@@ -131,8 +131,6 @@ for k, base_dir in enumerate(predict_setup_dirs):
 
 
 with viewer.txn() as s:
-    add_layer(s, prediction_views[0]["raw"], 'raw')
-
     for k, view in enumerate(prediction_views):
         for dset, dset_data in view["view_dsets"].items():
             add_layer(s, dset_data, str(k) + "_" + dset)
@@ -149,5 +147,6 @@ with viewer.txn() as s:
                                                                  annotations=view["edge_connectors"])
         except KeyError:
             print("No edges in prediction")
+    add_layer(s, prediction_views[0]["raw"], 'raw')
 
 print(viewer)
