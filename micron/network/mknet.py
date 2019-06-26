@@ -32,6 +32,7 @@ def create_network(input_shape,
 
         lsds = tf.reshape(lsds_batched, output_shape)
         soft_mask = lsds[9,:,:,:]
+        soft_mask = tf.clip_by_value(soft_mask, 0, 1.0)
         derivatives = lsds[:9,:,:,:]
 
         gt_lsds = tf.placeholder(tf.float32, shape=output_shape)
