@@ -27,4 +27,4 @@ singularity/$(PKG).img:
 .PHONY: tests
 tests: singularity/$(PKG).img
 	PY_MAJOR_VERSION=py`python -c 'import sys; print(sys.version_info[0])'` pytest --cov-report term-missing -v --cov=$(PKG) --cov-config=.coveragerc tests
-	flake8 $(PKG)
+	#flake8 $(PKG)
