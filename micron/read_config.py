@@ -4,6 +4,38 @@ import numpy as np
 import json
 
 
+def read_graph_config(graph_config):
+    config = configparser.ConfigParser()
+    config.read(graph_config)
+
+    cfg_dict = {}
+    cfg_dict["distance_threshold"] = int(config.get("Graph", "distance_threshold"))
+    cfg_dict["block_size"] = tuple([int(v) for v in np.array(config.get("Graph", "block_size").split(", "), dtype=int)])
+    cfg_dict["build_graph"] = config.get("Graph", "build_graph")
+    return cfg_dict
+
+def read_solve_config(solve_config):
+    config = configparser.ConfigParser()
+    config.read(solve_config)
+
+    cfg_dict = {}
+    
+    # Solve
+    cfg_dict["evidence_factor"] = int(config.get("Solve", "evidence_factor"))
+    cfg_dict["comb_angle_factor"] = int(config.get("Solve", "comb_angle_factor"))
+    cfg_dict["start_edge_prior"] = int(config.get("Solve", "start_edge_prior"))
+    cfg_dict["selection_cost"] = int(config.get("Solve", "selection_cost"))
+    cfg_dict["context"] = tuple([int(v) for v in np.array(config.get("Solve", "context").split(", "), dtype=int)])
+    cfg_dict["daisy_solve"] = config.get("Solve", "daisy_solve")
+    cfg_dict["solve_number"] = int(config.get("Solve", "solve_number"))
+    time_limit = config.get("Solve", "time_limit")
+    if time_limit == "None":
+        cfg_dict["time_limit"] = None
+    else:
+        cfg_dict["time_limit"] = int(time_limit)
+
+    return cfg_dict
+
 def read_predict_config(predict_config):
     config = configparser.ConfigParser()
     config.read(predict_config)

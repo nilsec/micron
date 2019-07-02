@@ -7,12 +7,13 @@ import os
 import sys
 import time
 sys.path.append("../")
-from graph.daisy_check_functions import check_function, write_done
-from solve import Solver
+from micron.graph.daisy_check_functions import check_function, write_done
+from solve_block import Solver
 import configparser
+from micron import read_solve_config, read_predict_config, read_data_config, read_worker_config, read_graph_config
 
 logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format='%(asctime)s %(name)s %(levelname)-8s %(message)s')
 # logging.getLogger(
 #         'daisy.persistence.mongodb_graph_provider').setLevel(logging.DEBUG)
@@ -35,6 +36,7 @@ def solve(
         comb_angle_factor,
         start_edge_prior,
         selection_cost,
+        time_limit,
         **kwargs):
 
     source_roi = daisy.Roi(daisy.Coordinate(roi_offset), daisy.Coordinate(roi_size))
@@ -62,6 +64,7 @@ def solve(
             comb_angle_factor,
             start_edge_prior,
             selection_cost,
+            time_limit,
             b,
             solve_number),
         check_function=lambda b: check_function(
@@ -81,6 +84,7 @@ def solve_in_block(db_host,
                    comb_angle_factor, 
                    start_edge_prior, 
                    selection_cost, 
+                   time_limit,
                    block, 
                    solve_number):
 
@@ -102,7 +106,6 @@ def solve_in_block(db_host,
     logger.info("Reading graph with %d nodes and %d edges took %s seconds"
                 % (num_nodes, num_edges, time.time() - start_time))
 
-    print(num_edges)
     if num_edges == 0:
         logger.info("No edges in roi %s. Skipping"
                     % block.read_roi)
@@ -112,7 +115,8 @@ def solve_in_block(db_host,
                     evidence_factor, 
                     comb_angle_factor, 
                     start_edge_prior, 
-                    selection_cost)
+                    selection_cost,
+                    time_limit)
 
     solver.initialize()
     solver.solve()
@@ -131,51 +135,28 @@ def solve_in_block(db_host,
     return 0
 
 
-def read_config(solve_config):
-    config = configparser.ConfigParser()
-    config.read(solve_config)
-
-    cfg_dict = {}
-
-    # Predict
-    cfg_dict["base_dir"] = config.get("Predict", "base_dir")
-    cfg_dict["experiment"] = config.get("Predict", "experiment")
-    cfg_dict["setup_number"] = int(config.getint("Predict", "setup_number"))
-    cfg_dict["iteration"] = int(config.getint("Predict", "iteration"))
-
-    # Database
-    cfg_dict["db_name"] = config.get("Database", "db_name")
-    cfg_dict["db_host"] = config.get("Database", "db_host")
-
-    # Worker
-    cfg_dict["singularity_container"] = config.get("Worker", "singularity_container")
-    cfg_dict["num_cpus"] = int(config.getint("Worker", "num_cpus"))
-    cfg_dict["num_block_workers"] = int(config.getint("Worker", "num_block_workers"))
-    cfg_dict["queue"] = config.get("Worker", "queue")
-    cfg_dict["block_size"] = tuple([int(v) for v in np.array(config.get("Worker", "block_size").split(", "), dtype=int)])
-
-    # Data
-    cfg_dict["roi_offset"] = tuple([int(v) for v in np.array(config.get("Roi", "roi_offset").split(", "), dtype=int)])
-    cfg_dict["roi_size"] = tuple([int(v) for v in np.array(config.get("Roi", "roi_size").split(", "), dtype=int)])
-    cfg_dict["context"] = tuple([int(v) for v in np.array(config.get("Roi", "context").split(", "), dtype=int)])
-
-    # Solve
-    cfg_dict["evidence_factor"] = config.getint("Solve", "evidence_factor")
-    cfg_dict["comb_angle_factor"] = config.getint("Solve", "comb_angle_factor")
-    cfg_dict["start_edge_prior"] = config.getint("Solve", "start_edge_prior")
-    cfg_dict["selection_cost"] = config.getint("Solve", "selection_cost")
-    cfg_dict["solve_number"] = config.getint("Solve", "solve_number")
-
-    print(cfg_dict)
-
-    return cfg_dict
-
-
 if __name__ == "__main__":
+    predict_config = sys.argv[1]
+    worker_config = sys.argv[2]
+    data_config = sys.argv[3]
+    graph_config = sys.argv[4]
+    solve_config = sys.argv[5]
 
-    config_file = sys.argv[1]
-    cfg_dict = read_config(config_file)
+    predict_config_dict = read_predict_config(predict_config)
+    worker_config_dict = read_worker_config(worker_config)
+    data_config_dict = read_data_config(data_config)
+    graph_config_dict = read_graph_config(graph_config)
+    solve_config_dict = read_solve_config(solve_config)
+
+    full_config = predict_config_dict
+    full_config.update(worker_config_dict)
+    full_config.update(data_config_dict)
+    full_config.update(graph_config_dict)
+    full_config.update(solve_config_dict)
+
+    full_config["roi_offset"] = full_config["in_offset"]
+    full_config["roi_size"] = full_config["in_size"]
 
     start_time = time.time()
-    solve(**cfg_dict)
+    solve(**full_config)
     print("Solving took {} seconds".format(time.time() - start_time))

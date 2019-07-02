@@ -9,7 +9,7 @@ import datetime
 import pymongo
 import configparser
 from shutil import copyfile
-from micron.network import read_predict_config, read_worker_config, read_data_config
+from micron import read_predict_config, read_worker_config, read_data_config
 from pysub import run, run_singularity
 
 logger = logging.getLogger(__name__)

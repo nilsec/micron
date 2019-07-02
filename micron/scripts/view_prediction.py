@@ -105,7 +105,7 @@ for k, base_dir in enumerate(predict_setup_dirs):
                 y = node_data[1]
                 z = node_data[0]
                 maxima_dict[node_id] = (x,y,z)
-                maxima.append(neuroglancer.EllipsoidAnnotation(center=(x,y,z+1), 
+                maxima.append(neuroglancer.EllipsoidAnnotation(center=(x,y,z), 
                                                                radii=(tuple([10] * 3)),
                                                                id=node_id,
                                                                segments=None
@@ -119,7 +119,7 @@ for k, base_dir in enumerate(predict_setup_dirs):
                 y = nodes[node_id][1]
                 z = nodes[node_id][0]
                 maxima_dict[node_id] = (x,y,z)
-                maxima.append(neuroglancer.EllipsoidAnnotation(center=(x,y,z+1), 
+                maxima.append(neuroglancer.EllipsoidAnnotation(center=(x,y,z), 
                                                                radii=(tuple([10] * 3)),
                                                                id=node_id,
                                                                segments=None

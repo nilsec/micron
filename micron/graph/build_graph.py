@@ -11,15 +11,9 @@ import time
 import configparser
 from daisy_check_functions import check_function, write_done
 from dda3 import DDA3
+from micron import read_predict_config, read_worker_config, read_data_config, read_graph_config
 
-logging.basicConfig(filename="./extract_edges.log",
-                            filemode='a',
-                            format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                            datefmt='%H:%M:%S',
-                            level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
-
 
 def extract_edges(
         db_host,
@@ -28,10 +22,9 @@ def extract_edges(
         soft_mask_dataset,
         roi_offset,
         roi_size,
-        voxel_size,
         distance_threshold,
         block_size,
-        num_workers,
+        num_block_workers,
         **kwargs):
 
     # Define Rois:
@@ -73,7 +66,7 @@ def extract_edges(
             'extract_edges',
             db_name,
             db_host),
-        num_workers=num_workers,
+        num_workers=num_block_workers,
         processes=True,
         read_write_conflict=False,
         fit='shrink')
@@ -163,40 +156,30 @@ def extract_edges_in_block(
     write_done(block, 'extract_edges', db_name, db_host)
 
 
-def aggregate_config(predict_config):
-    # Grab predict parameters:
-    config = configparser.ConfigParser()
-    config.read(predict_config)
-
-    cfg_dict = {}
-    cfg_dict["base_dir"] = os.path.join(config.get("Predict", "base_dir"), config.get("Predict", "experiment"),
-                            "02_predict/setup_{}".format(config.get("Predict", "setup_number")))
-    cfg_dict["db_host"] = config.get("Database", "db_host")
-    cfg_dict["db_name"] = config.get("Database", "db_name")
-    cfg_dict["roi_offset"] = daisy.Coordinate(tuple([int(v) for v in np.array(config.get("Data", "in_offset").split(", "), dtype=int)]))
-    cfg_dict["roi_size"] = daisy.Coordinate(tuple([int(v) for v in np.array(config.get("Data", "in_size").split(", "), dtype=int)]))
-
-    # Grab voxel size:
-    with open(os.path.join(cfg_dict["base_dir"], "config.json"), "r") as f:
-        net_config = json.load(f)
-    cfg_dict["voxel_size"] = daisy.Coordinate(net_config['voxel_size'])
-    cfg_dict["soft_mask_container"] = os.path.join(cfg_dict["base_dir"], config.get("Data", "out_container").split("./")[-1])
-    cfg_dict["soft_mask_dataset"] = "/volumes/soft_mask"
-
-    return cfg_dict
-
-
 if __name__ == "__main__":
-    predict_config = "/groups/funke/home/ecksteinn/Projects/microtubules/micron_experiments/cremi/02_predict/setup_2/predict_config_template.ini"
-    distance_threshold=100
-    block_size = (1000,1000,1000)
-    num_workers = 40
+    logger = logging.getLogger("daisy")
+    logger.setLevel(logging.DEBUG)
 
-    cfg_dict = aggregate_config(predict_config)
-    cfg_dict["distance_threshold"] = 100
-    cfg_dict["block_size"] = block_size
-    cfg_dict["num_workers"] = num_workers
+    predict_config = sys.argv[1]
+    worker_config = sys.argv[2]
+    data_config = sys.argv[3]
+    graph_config = sys.argv[4]
+
+    predict_config_dict = read_predict_config(predict_config)
+    worker_config_dict = read_worker_config(worker_config)
+    data_config_dict = read_data_config(data_config)
+    graph_config_dict = read_graph_config(graph_config)
+
+    full_config = predict_config_dict
+    full_config.update(worker_config_dict)
+    full_config.update(data_config_dict)
+    full_config.update(graph_config_dict)
+
+    full_config["soft_mask_container"] = predict_config_dict["out_container"]
+    full_config["soft_mask_dataset"] = "/volumes/soft_mask"
+    full_config["roi_offset"] = data_config_dict["in_offset"]
+    full_config["roi_size"] = data_config_dict["in_size"]
 
     start_time = time.time()
-    extract_edges(**cfg_dict)
+    extract_edges(**full_config)
     print(time.time() - start_time)

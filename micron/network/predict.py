@@ -2,7 +2,7 @@ import os
 from subprocess import check_call
 from pysub import run, run_singularity
 import logging
-from micron.network import read_predict_config, read_worker_config, read_data_config
+from micron import read_predict_config, read_worker_config, read_data_config
 
 predict_config = read_predict_config("predict_config.ini")
 worker_config = read_worker_config("worker_config.ini")
