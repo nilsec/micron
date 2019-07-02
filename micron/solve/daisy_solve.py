@@ -13,7 +13,7 @@ import configparser
 from micron import read_solve_config, read_predict_config, read_data_config, read_worker_config, read_graph_config
 
 logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format='%(asctime)s %(name)s %(levelname)-8s %(message)s')
 # logging.getLogger(
 #         'daisy.persistence.mongodb_graph_provider').setLevel(logging.DEBUG)
@@ -37,6 +37,8 @@ def solve(
         start_edge_prior,
         selection_cost,
         time_limit,
+        selected_attr,
+        solved_attr,
         **kwargs):
 
     source_roi = daisy.Roi(daisy.Coordinate(roi_offset), daisy.Coordinate(roi_size))
@@ -66,7 +68,9 @@ def solve(
             selection_cost,
             time_limit,
             b,
-            solve_number),
+            solve_number,
+            selected_attr,
+            solved_attr),
         check_function=lambda b: check_function(
             b,
             'solve_' + str(solve_number),
@@ -86,7 +90,9 @@ def solve_in_block(db_host,
                    selection_cost, 
                    time_limit,
                    block, 
-                   solve_number):
+                   solve_number,
+                   selected_attr="selected",
+                   solved_attr="solved"):
 
     logger.debug("Solving in block %s", block)
 
@@ -124,7 +130,7 @@ def solve_in_block(db_host,
     start_time = time.time()
     graph.update_edge_attrs(
             block.write_roi,
-            attributes=["selected", "solved"])
+            attributes=[selected_attr, solved_attr])
 
     logger.info("Updating attributes %s & %s for %d edges took %s seconds"
                 % ("selected",

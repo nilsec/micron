@@ -10,13 +10,18 @@ START_EDGE = (-1, -1, {})
 #pylp.set_log_level(pylp.LogLevel.Debug)
 
 class Solver(object):
-    def __init__(self, graph, evidence_factor, comb_angle_factor, start_edge_prior, selection_cost, time_limit=None, **kwargs):
+    def __init__(self, graph, evidence_factor, comb_angle_factor, 
+                 start_edge_prior, selection_cost, time_limit=None, 
+                 selected_attr="selected", solved_attr="solved", **kwargs):
+
         self.graph = graph
         self.evidence_factor = evidence_factor
         self.comb_angle_factor = comb_angle_factor
         self.start_edge_prior = start_edge_prior
         self.selection_cost = selection_cost
         self.time_limit = time_limit
+        self.selected_attr = selected_attr
+        self.solved_attr = solved_attr
 
         self.nodes = {v: v_data for v, v_data in self.graph.nodes(data=True) if 'z' in v_data}
         # Only consider edges that are fully contained in context - 
@@ -131,9 +136,9 @@ class Solver(object):
 
                 for e in edges_in_t:
                     if e != tuple([START_EDGE[0], START_EDGE[1]]):
-                        self.graph.edges[e]["selected"] = True
-                        self.graph.nodes[e[0]]["selected"] = True
-                        self.graph.nodes[e[1]]["selected"] = True
+                        self.graph.edges[e][self.selected_attr] = True
+                        self.graph.nodes[e[0]][self.selected_attr] = True
+                        self.graph.nodes[e[1]][self.selected_attr] = True
                         selected_edges.add(e)
                         selected_nodes.add(e[0])
                         selected_nodes.add(e[1])
@@ -141,10 +146,10 @@ class Solver(object):
 
         # This is only true for write roi:
         for v in self.nodes.keys():
-            self.graph.nodes[v]["solved"] = True
+            self.graph.nodes[v][self.solved_attr] = True
 
         for e in self.edges_fully_contained:
-            self.graph.edges[e]["solved"] = True
+            self.graph.edges[e][self.solved_attr] = True
 
 
     def __create_indicators(self):

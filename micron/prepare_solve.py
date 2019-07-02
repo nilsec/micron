@@ -6,6 +6,10 @@ import configargparse
 import configparser
 from os.path import expanduser
 import click
+from daisy.persistence import MongoDbGraphProvider
+from daisy import Roi
+from micron import read_predict_config, read_data_config
+from micron.graph.daisy_check_functions import reset_step
 
 micron_config = expanduser("~/.micron")
 
@@ -19,6 +23,8 @@ p.add('-p', required=True, help='predict number/id to use for this solve run')
 p.add('-g', required=True, help='graph number/id to use for this solve run')
 p.add('-s', required=True, help='solve number/id to use for this solve run')
 p.add('-c', required=False, action='store_true', help='clean up - remove specified predict setup')
+p.add('-r', required=False, action='store_true', help='reset - reset solve and selected status for resolving')
+
 
 p.add('--db_name', required=False, 
       help='name of the database to write the prediction to, defaults to ``{experiment}_{train-number}_{predict-number}``')
@@ -43,7 +49,8 @@ def set_up_environment(base_dir,
                        mount_dirs,
                        singularity,
                        queue,
-                       clean_up):
+                       clean_up,
+                       reset):
 
     input_params = locals()
     train_files = {}
@@ -53,12 +60,55 @@ def set_up_environment(base_dir,
     predict_setup_dir = os.path.join(os.path.join(base_dir, experiment), "02_predict/train_{}/predict_{}".format(train_number, predict_number))
     train_setup_dir = os.path.join(os.path.join(base_dir, experiment), "01_train/train_{}".format(train_number))
 
+    selected_attr = "selected_{}".format(solve_number)
+    solved_attr = "solved_{}".format(solve_number)
+
     if clean_up:
         if __name__ == "__main__":
             if click.confirm('Are you sure you want to remove {} and all its contents?'.format(solve_setup_dir), default=False):
                 rmtree(solve_setup_dir)
             else:
                 print("Abort clean up")
+        else:
+            rmtree(solve_setup_dir)
+
+    if reset:
+        predict_cfg_dict = read_predict_config(os.path.join(graph_setup_dir, "predict_config.ini"))
+        data_cfg_dict = read_data_config(os.path.join(graph_setup_dir, "data_config.ini"))
+        roi = Roi(data_cfg_dict["in_offset"], data_cfg_dict["in_size"])
+        db_name = predict_cfg_dict["db_name"]
+        db_host = predict_cfg_dict["db_host"]
+
+        if __name__ == "__main__":
+            if click.confirm('Are you sure you want to reset solve and selected status in {}?'.format(db_name), default=False):
+                graph_provider = MongoDbGraphProvider(db_name,
+                                                      db_host,
+                                                      mode='r+',
+                                                      position_attribute=['z', 'y', 'x'])
+
+                graph = graph_provider.get_graph(roi)
+
+                for e in graph.edges:
+                    graph.edges[e][selected_attr] = False
+                    graph.edges[e][solved_attr] = False
+                for v in graph.nodes:
+                    graph.nodes[v][selected_attr] = False
+                    graph.nodes[v][solved_attr] = False
+
+                graph.update_edge_attrs(roi,
+                                        attributes=[selected_attr, solved_attr])
+
+                reset_step("solve_{}".format(solve_number), db_name, db_host)
+
+            else:
+                print("Abort reset")
+        else:
+            graph_provider = MongoDbGraphProvider(db_name,
+                                                  db_host,
+                                                  mode='r+',
+                                                  position_attribute=['z', 'y', 'x'])
+
+            graph_provider.database['edges'].update_many({}, {'$set': {selected_attr: False, solved_attr: False}})
 
     if not os.path.exists(graph_setup_dir):
         raise ValueError("No graph at {}".format(graph_setup_dir))
@@ -83,7 +133,9 @@ def set_up_environment(base_dir,
     copyfile("./solve/solve.py", os.path.join(solve_setup_dir, "solve.py"))
 
     worker_config = create_worker_config(mount_dirs, singularity, queue)
-    solve_config = create_solve_config(solve_number)
+    solve_config = create_solve_config(solve_number,
+                                       selected_attr,
+                                       solved_attr)
 
     with open(os.path.join(solve_setup_dir, "worker_config.ini"), "w+") as f:
         worker_config.write(f)
@@ -92,6 +144,8 @@ def set_up_environment(base_dir,
 
 
 def create_solve_config(solve_number,
+                        selected_attr,
+                        solved_attr,
                         evidence_factor=12,
                         comb_angle_factor=14,
                         start_edge_prior=180,
@@ -107,6 +161,8 @@ def create_solve_config(solve_number,
     config.set('Solve', 'daisy_solve', os.path.abspath("./solve/daisy_solve.py"))
     config.set('Solve', 'solve_number', str(solve_number))
     config.set('Solve', 'time_limit', str(120))
+    config.set('Solve', 'selected_attr', selected_attr)
+    config.set('Solve', 'solved_attr', solved_attr)
     
     return config
 
@@ -145,6 +201,7 @@ if __name__ == "__main__":
     graph_number = int(options.g)
     solve_number = int(options.s)
     clean_up = bool(options.c)
+    reset = bool(options.r)
     db_name = options.db_name
     db_host = options.db_host
     mount_dirs = options.mount_dirs
@@ -162,4 +219,5 @@ if __name__ == "__main__":
                        mount_dirs,
                        singularity,
                        queue,
-                       clean_up)
+                       clean_up,
+                       reset)

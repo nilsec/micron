@@ -33,6 +33,8 @@ def read_solve_config(solve_config):
         cfg_dict["time_limit"] = None
     else:
         cfg_dict["time_limit"] = int(time_limit)
+    cfg_dict["selected_attr"] = config.get("Solve", "selected_attr")
+    cfg_dict["solved_attr"] = config.get("Solve", "solved_attr")
 
     return cfg_dict
 
