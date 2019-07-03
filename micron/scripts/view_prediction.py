@@ -17,7 +17,8 @@ p.add('-d', required=True,
 p.add('-e', required=True, help='name of the experiment, e.g. fafb')
 p.add('-t', required=True, help='train number')
 p.add('-p', required=True, help='Predictions to visualize, e.g. "1, 2, 3"')
-p.add('-s', action='store_true', required=False, 
+p.add('-s', required=False, help='solve number')
+p.add('-f', action='store_true', required=False, 
       help='Show selected nodes and edges only',
       default=False)
 
@@ -27,7 +28,9 @@ base_dir = options.d
 experiment = options.e
 train_number = int(options.t)
 predictions = tuple([int(p) for p in options.p.split(", ")])
-selected_only = bool(options.s)
+solve_number = int(options.s)
+selected_only = bool(options.f)
+
 
 predict_setup_dirs = [os.path.join(os.path.join(base_dir, experiment), "02_predict/train_{}/predict_{}".format(train_number, p)) for p in predictions] 
 predict_configs = [os.path.join(base, "predict_config.ini") for base in predict_setup_dirs]
@@ -74,9 +77,11 @@ for k, base_dir in enumerate(predict_setup_dirs):
                              db_name,
                              roi_offset,
                              roi_size,
-                             selected_only)
+                             selected_only,
+                             "selected_{}".format(solve_number),
+                             "solved_{}".format(solve_number))
+    nodes_in_edges = []
     if edges:
-        nodes_in_edges = []
         k = 0
         edge_connectors = []
         for u, v, selected, solved in edges:
