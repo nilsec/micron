@@ -7,7 +7,7 @@ from daisy.persistence import MongoDbGraphProvider
 
 logger = logging.getLogger(__name__)
 START_EDGE = (-1, -1, {})
-#pylp.set_log_level(pylp.LogLevel.Debug)
+pylp.set_log_level(pylp.LogLevel.Debug)
 
 class Solver(object):
     def __init__(self, graph, evidence_factor, comb_angle_factor, 
@@ -169,11 +169,11 @@ class Solver(object):
             t_conflict = []
 
             # Detect if vertex is isolated selected:
-            if v_data["selected"]:
-                v_incident_selected = [e for e in v_incident if e[2]["selected"]]
+            if v_data[self.selected_attr]:
+                v_incident_selected = [e for e in v_incident if e[2][self.selected_attr]]
                 v_isolated = False
                 if not v_incident_selected:
-                    v_selected.append([v, v_data])
+                    v_selected.append(v)
                     v_isolated = True
 
             for e1 in v_incident:
@@ -181,9 +181,9 @@ class Solver(object):
                 e1_sorted = tuple(sorted((e1[0], e1[1])))
                 e_isolated = False
 
-                if e1[2]["selected"]:
-                    e1_u_selected = [e for e in self.graph.edges(e1[0], data=True) if e[2]["selected"] and e1_sorted in self.edges_fully_contained]
-                    e1_v_selected = [e for e in self.graph.edges(e1[1], data=True) if e[2]["selected"] and e1_sorted in self.edges_fully_contained]
+                if e1[2][self.selected_attr]:
+                    e1_u_selected = [e for e in self.graph.edges(e1[0], data=True) if e[2][self.selected_attr] and e1_sorted in self.edges_fully_contained]
+                    e1_v_selected = [e for e in self.graph.edges(e1[1], data=True) if e[2][self.selected_attr] and e1_sorted in self.edges_fully_contained]
 
                     if len(e1_u_selected) == 1 and len(e1_v_selected) == 1:
                         e_selected.append(e1)
@@ -225,13 +225,13 @@ class Solver(object):
                             vertices_data_in_t = [self.nodes[v] for v in vertices_in_t if v in self.nodes.keys()]
                             vertices_in_t = [v for v in vertices_in_t if v in self.nodes.keys()]
 
-                            v12_solved = [v["solved"] for v in vertices_data_in_t]
+                            v12_solved = [v[self.solved_attr] for v in vertices_data_in_t]
 
-                            e1_solved = e1[2]["solved"]
-                            e1_selected = e1[2]["selected"]
+                            e1_solved = e1[2][self.solved_attr]
+                            e1_selected = e1[2][self.selected_attr]
                             
-                            e2_solved = e2[2]["solved"]
-                            e2_selected = e2[2]["selected"]
+                            e2_solved = e2[2][self.solved_attr]
+                            e2_selected = e2[2][self.selected_attr]
 
 
                             if e1_selected and e2_selected:
@@ -241,35 +241,34 @@ class Solver(object):
                                 t_solved.append(t)
 
                         elif e1 != START_EDGE and e2 == START_EDGE:
-                            e1_solved = e1[2]["solved"]
+                            e1_solved = e1[2][self.solved_attr]
                             
                             vertices_in_e1 = [e1[0], e1[1]]
                             vertices_data_in_e1 = [self.nodes[v] for v in vertices_in_e1 if v in self.nodes.keys()]
                             assert(len(vertices_data_in_e1) == 2)
 
-                            v12_solved = [v["solved"] for v in vertices_data_in_e1]
+                            v12_solved = [v[self.solved_attr] for v in vertices_data_in_e1]
 
                             if e1_solved and np.all(v12_solved):
                                 t_solved.append(t)
 
 
                         elif e1 == START_EDGE and e2 != START_EDGE:
-                            e2_solved = e2[2]["solved"]
+                            e2_solved = e2[2][self.solved_attr]
                             
                             vertices_in_e2 = [e2[0], e2[1]]
                             vertices_data_in_e2 = [self.nodes[v] for v in vertices_in_e2 if v in self.nodes.keys()]
                             assert(len(vertices_data_in_e2) == 2)
 
-                            v12_solved = [v["solved"] for v in vertices_data_in_e2]
+                            v12_solved = [v[self.solved_attr] for v in vertices_data_in_e2]
 
                             if e2_solved and np.all(v12_solved):
                                 t_solved.append(t)
 
             t_center_conflicts.append(t_conflict)
 
-
         if v_selected:
-            v_selected_tmp = [set(center_to_t[v]) for v in v_selected]
+            v_selected_tmp = [center_to_t[v] for v in v_selected]
             v_selected = []
             for subset in v_selected_tmp:
                 v_selected.append(set([v for v in subset if (START_EDGE[0], START_EDGE[1]) in t_to_e[v]]))
@@ -283,6 +282,8 @@ class Solver(object):
                 "t_to_center": t_to_center,
                 "t_to_e": t_to_e,
                 "e_to_t": e_to_t}
+
+        v_selected = []
 
         self.triplets = triplets
         self.t_center_conflicts = t_center_conflicts
