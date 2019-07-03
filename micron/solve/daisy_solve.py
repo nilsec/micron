@@ -13,12 +13,21 @@ import configparser
 from micron import read_solve_config, read_predict_config, read_data_config, read_worker_config, read_graph_config
 
 logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s %(name)s %(levelname)-8s %(message)s')
+        level=logging.DEBUG,
+        format='%(asctime)s %(name)s %(levelname)-8s %(message)s',
+        filename='solve.log',
+        filemode='w+')
 # logging.getLogger(
 #         'daisy.persistence.mongodb_graph_provider').setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
-
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+# set a format which is simpler for console use
+formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+# tell the handler to use this format
+console.setFormatter(formatter)
+# add the handler to the root logger
+logging.getLogger('').addHandler(console)
 
 def solve(
         db_host,
@@ -122,7 +131,9 @@ def solve_in_block(db_host,
                     comb_angle_factor, 
                     start_edge_prior, 
                     selection_cost,
-                    time_limit)
+                    time_limit,
+                    selected_attr,
+                    solved_attr)
 
     solver.initialize()
     solver.solve()
@@ -132,9 +143,13 @@ def solve_in_block(db_host,
             block.write_roi,
             attributes=[selected_attr, solved_attr])
 
+    graph.update_node_attrs(
+            block.write_roi,
+            attributes=[selected_attr, solved_attr])
+
     logger.info("Updating attributes %s & %s for %d edges took %s seconds"
-                % ("selected",
-                   "solved",
+                % (selected_attr,
+                   solved_attr,
                    num_edges,
                    time.time() - start_time))
     write_done(block, 'solve_' + str(solve_number), db_name, db_host)
