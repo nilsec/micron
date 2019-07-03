@@ -25,3 +25,9 @@ def reset_step(step_name, db_name, db_host):
     db = client[db_name]
     daisy_coll = db[get_daisy_collection_name(step_name)]
     daisy_coll.drop()
+
+def reset_solve(db_name, db_host, selected_attr, solved_attr):
+    client = pymongo.MongoClient(db_host)
+    db = client[db_name]
+    edges = db["edges"].update_many({}, {"$set": {selected_attr: False, solved_attr: False}})
+    nodes = db["nodes"].update_many({}, {"$set": {selected_attr: False, solved_attr: False}})

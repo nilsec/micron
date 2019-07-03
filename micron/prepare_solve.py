@@ -9,7 +9,7 @@ import click
 from daisy.persistence import MongoDbGraphProvider
 from daisy import Roi
 from micron import read_predict_config, read_data_config
-from micron.graph.daisy_check_functions import reset_step
+from micron.graph.daisy_check_functions import reset_step, reset_solve
 
 micron_config = expanduser("~/.micron")
 
@@ -60,8 +60,10 @@ def set_up_environment(base_dir,
     predict_setup_dir = os.path.join(os.path.join(base_dir, experiment), "02_predict/train_{}/predict_{}".format(train_number, predict_number))
     train_setup_dir = os.path.join(os.path.join(base_dir, experiment), "01_train/train_{}".format(train_number))
 
-    selected_attr = "selected_{}".format(solve_number)
-    solved_attr = "solved_{}".format(solve_number)
+    #selected_attr = "selected_{}".format(solve_number)
+    #solved_attr = "solved_{}".format(solve_number)
+    selected_attr = "selected"
+    solved_attr = "solved"
 
     if clean_up:
         if __name__ == "__main__":
@@ -81,6 +83,7 @@ def set_up_environment(base_dir,
 
         if __name__ == "__main__":
             if click.confirm('Are you sure you want to reset solve and selected status in {}?'.format(db_name), default=False):
+                """
                 graph_provider = MongoDbGraphProvider(db_name,
                                                       db_host,
                                                       mode='r+',
@@ -97,7 +100,11 @@ def set_up_environment(base_dir,
 
                 graph.update_edge_attrs(roi,
                                         attributes=[selected_attr, solved_attr])
+                graph.update_node_attrs(roi,
+                                        attributes=[selected_attr, solved_attr])
+                """
 
+                reset_solve(db_name, db_host, selected_attr, solved_attr)
                 reset_step("solve_{}".format(solve_number), db_name, db_host)
 
             else:
