@@ -102,13 +102,13 @@ class Solver(object):
 
         for must_pick_one in self.e_selected + self.v_selected:
             constraint = pylp.LinearConstraint()
+            if must_pick_one:
+                for t in must_pick_one:
+                    constraint.set_coefficient(t, 1)
 
-            for t in must_pick_one:
-                constraint.set_coefficient(t, 1)
-
-            constraint.set_relation(pylp.Relation.GreaterEqual)
-            constraint.set_value(1)
-            self.constraints.add(constraint)
+                constraint.set_relation(pylp.Relation.GreaterEqual)
+                constraint.set_value(1)
+                self.constraints.add(constraint)
 
         self.backend.set_constraints(self.constraints)
 
@@ -153,8 +153,8 @@ class Solver(object):
 
 
     def __create_indicators(self):
-        v_selected = []
-        e_selected = []
+        v_selected = set()
+        e_selected = set()
         t_selected = []
         t_solved = []
         t_center_conflicts = []
@@ -173,7 +173,7 @@ class Solver(object):
                 v_incident_selected = [e for e in v_incident if e[2][self.selected_attr]]
                 v_isolated = False
                 if not v_incident_selected:
-                    v_selected.append(v)
+                    v_selected.add(v)
                     v_isolated = True
 
             for e1 in v_incident:
@@ -186,7 +186,7 @@ class Solver(object):
                     e1_v_selected = [e for e in self.graph.edges(e1[1], data=True) if e[2][self.selected_attr] and e1_sorted in self.edges_fully_contained]
 
                     if len(e1_u_selected) == 1 and len(e1_v_selected) == 1:
-                        e_selected.append(e1)
+                        e_selected.add(tuple(sorted([e1[0], e1[1]])))
                         e_isolated = True
 
                 # Build triplets:
@@ -272,18 +272,20 @@ class Solver(object):
             v_selected = []
             for subset in v_selected_tmp:
                 v_selected.append(set([v for v in subset if (START_EDGE[0], START_EDGE[1]) in t_to_e[v]]))
+        else:
+            v_selected = list(v_selected)
 
 
         if e_selected:
-            e_selected = [set(e_to_t[tuple(sorted([e[0], e[1]]))]) for e in e_selected]
+            e_selected = [set(e_to_t[e]) for e in e_selected]
+        else:
+            e_selected = list(e_selected)
 
         
         maps = {"center_to_t": center_to_t,
                 "t_to_center": t_to_center,
                 "t_to_e": t_to_e,
                 "e_to_t": e_to_t}
-
-        v_selected = []
 
         self.triplets = triplets
         self.t_center_conflicts = t_center_conflicts
