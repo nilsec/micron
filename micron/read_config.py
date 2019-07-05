@@ -3,12 +3,12 @@ import os
 import numpy as np
 import json
 
-
 def read_graph_config(graph_config):
     config = configparser.ConfigParser()
     config.read(graph_config)
 
     cfg_dict = {}
+    cfg_dict["graph_number"] = int(config.get("Graph", "graph_number"))
     cfg_dict["distance_threshold"] = int(config.get("Graph", "distance_threshold"))
     cfg_dict["block_size"] = tuple([int(v) for v in np.array(config.get("Graph", "block_size").split(", "), dtype=int)])
     cfg_dict["build_graph"] = config.get("Graph", "build_graph")

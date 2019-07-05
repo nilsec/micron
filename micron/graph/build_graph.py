@@ -14,6 +14,22 @@ from dda3 import DDA3
 from micron import read_predict_config, read_worker_config, read_data_config, read_graph_config
 
 logger = logging.getLogger(__name__)
+"""
+logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s %(name)s %(levelname)-8s %(message)s',
+        filename='graph.log',
+        filemode='w+')
+logger = logging.getLogger(__name__)
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+# set a format which is simpler for console use
+formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+# tell the handler to use this format
+console.setFormatter(formatter)
+# add the handler to the root logger
+logging.getLogger('').addHandler(console)
+"""
 
 def extract_edges(
         db_host,
@@ -25,6 +41,7 @@ def extract_edges(
         distance_threshold,
         block_size,
         num_block_workers,
+        graph_number,
         **kwargs):
 
     # Define Rois:
@@ -60,10 +77,11 @@ def extract_edges(
             soft_mask_container,
             soft_mask_dataset,
             distance_threshold,
+            graph_number,
             b),
         check_function=lambda b: check_function(
             b,
-            'extract_edges',
+            'edges_g{}'.format(graph_number),
             db_name,
             db_host),
         num_workers=num_block_workers,
@@ -78,6 +96,7 @@ def extract_edges_in_block(
         soft_mask_container,
         soft_mask_dataset,
         distance_threshold,
+        graph_number,
         block):
 
     logger.info(
@@ -90,7 +109,8 @@ def extract_edges_in_block(
                                           db_host,
                                           mode='r+',
                                           position_attribute=['z', 'y', 'x'],
-                                          directed=False)
+                                          directed=False,
+                                          edges_collection='edges_g{}'.format(graph_number))
 
     soft_mask_array = daisy.open_ds(soft_mask_container,
                                     soft_mask_dataset)
@@ -99,7 +119,8 @@ def extract_edges_in_block(
 
     if graph.number_of_nodes() == 0:
         logger.info("No nodes in roi %s. Skipping", block.read_roi)
-        return
+        write_done(block, 'edges_g{}'.format(graph_number), db_name, db_host)
+        return 0
 
     logger.info(
         "Read %d candidates in %.3fs",
@@ -135,9 +156,7 @@ def extract_edges_in_block(
         evidence /= (len(line) * 255.)
         graph.add_edge(candidates[edge[0]][0],
                        candidates[edge[1]][0],
-                       evidence=evidence,
-                       selected=False,
-                       solved=False)
+                       evidence=evidence)
  
     logger.info("Found %d edges", graph.number_of_edges())
 
@@ -153,7 +172,8 @@ def extract_edges_in_block(
         "Wrote edges in %.3fs",
         time.time() - start)
 
-    write_done(block, 'extract_edges', db_name, db_host)
+    write_done(block, 'edges_g{}'.format(graph_number), db_name, db_host)
+    return 0
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ import click
 from daisy.persistence import MongoDbGraphProvider
 from daisy import Roi
 from micron import read_predict_config, read_data_config
-from micron.graph.daisy_check_functions import reset_step, reset_solve
+from micron.graph.daisy_check_functions import reset_step, reset_solve, attr_exists
 
 micron_config = expanduser("~/.micron")
 
@@ -25,11 +25,8 @@ p.add('-s', required=True, help='solve number/id to use for this solve run')
 p.add('-c', required=False, action='store_true', help='clean up - remove specified predict setup')
 p.add('-r', required=False, action='store_true', help='reset - reset solve and selected status for resolving')
 
-
-p.add('--db_name', required=False, 
-      help='name of the database to write the prediction to, defaults to ``{experiment}_{train-number}_{predict-number}``')
-p.add('--db_host', required=False, 
-      help='database credential string')
+p.add('--db_host', required=False,
+      help='db host credential string')
 p.add('--mount_dirs', required=False, 
       help='directories to mount in container environment')
 p.add('--singularity', required=False,
@@ -44,8 +41,6 @@ def set_up_environment(base_dir,
                        predict_number,
                        graph_number,
                        solve_number,
-                       db_name,
-                       db_host,
                        mount_dirs,
                        singularity,
                        queue,
@@ -59,11 +54,22 @@ def set_up_environment(base_dir,
     solve_setup_dir = os.path.join(os.path.join(base_dir, experiment), "04_solve/setup_t{}_p{}_g{}_s{}".format(train_number, predict_number, graph_number,solve_number))
     predict_setup_dir = os.path.join(os.path.join(base_dir, experiment), "02_predict/train_{}/predict_{}".format(train_number, predict_number))
     train_setup_dir = os.path.join(os.path.join(base_dir, experiment), "01_train/train_{}".format(train_number))
+    
+    predict_cfg_dict = read_predict_config(os.path.join(graph_setup_dir, "predict_config.ini"))
+    data_cfg_dict = read_data_config(os.path.join(graph_setup_dir, "data_config.ini"))
+    roi = Roi(data_cfg_dict["in_offset"], data_cfg_dict["in_size"])
+    db_name = predict_cfg_dict["db_name"]
+    db_host = predict_cfg_dict["db_host"]
 
-    #selected_attr = "selected_{}".format(solve_number)
-    #solved_attr = "solved_{}".format(solve_number)
-    selected_attr = "selected"
-    solved_attr = "solved"
+    selected_attr = "selected_{}".format(solve_number)
+    solved_attr = "solved_{}".format(solve_number)
+    edge_collection = "edges_g{}".format(graph_number)
+    node_collection = "nodes"
+
+    solved_before = attr_exists(db_name, db_host, edge_collection, solved_attr)
+    if not solved_before:
+        print("Graph not solved before, build attributes...")
+        reset_solve(db_name, db_host, edge_collection, node_collection, selected_attr, solved_attr)
 
     if clean_up:
         if __name__ == "__main__":
@@ -75,47 +81,16 @@ def set_up_environment(base_dir,
             rmtree(solve_setup_dir)
 
     if reset:
-        predict_cfg_dict = read_predict_config(os.path.join(graph_setup_dir, "predict_config.ini"))
-        data_cfg_dict = read_data_config(os.path.join(graph_setup_dir, "data_config.ini"))
-        roi = Roi(data_cfg_dict["in_offset"], data_cfg_dict["in_size"])
-        db_name = predict_cfg_dict["db_name"]
-        db_host = predict_cfg_dict["db_host"]
-
         if __name__ == "__main__":
             if click.confirm('Are you sure you want to reset solve and selected status in {}?'.format(db_name), default=False):
-                """
-                graph_provider = MongoDbGraphProvider(db_name,
-                                                      db_host,
-                                                      mode='r+',
-                                                      position_attribute=['z', 'y', 'x'])
-
-                graph = graph_provider.get_graph(roi)
-
-                for e in graph.edges:
-                    graph.edges[e][selected_attr] = False
-                    graph.edges[e][solved_attr] = False
-                for v in graph.nodes:
-                    graph.nodes[v][selected_attr] = False
-                    graph.nodes[v][solved_attr] = False
-
-                graph.update_edge_attrs(roi,
-                                        attributes=[selected_attr, solved_attr])
-                graph.update_node_attrs(roi,
-                                        attributes=[selected_attr, solved_attr])
-                """
-
-                reset_solve(db_name, db_host, selected_attr, solved_attr)
+                reset_solve(db_name, db_host, edge_collection, node_collection, selected_attr, solved_attr)
                 reset_step("solve_{}".format(solve_number), db_name, db_host)
 
             else:
                 print("Abort reset")
         else:
-            graph_provider = MongoDbGraphProvider(db_name,
-                                                  db_host,
-                                                  mode='r+',
-                                                  position_attribute=['z', 'y', 'x'])
-
-            graph_provider.database['edges'].update_many({}, {'$set': {selected_attr: False, solved_attr: False}})
+            reset_solve(db_name, db_host, edge_collection, node_collection, selected_attr, solved_attr)
+            reset_step("solve_{}".format(solve_number), db_name, db_host)
 
     if not os.path.exists(graph_setup_dir):
         raise ValueError("No graph at {}".format(graph_setup_dir))
@@ -209,7 +184,6 @@ if __name__ == "__main__":
     solve_number = int(options.s)
     clean_up = bool(options.c)
     reset = bool(options.r)
-    db_name = options.db_name
     db_host = options.db_host
     mount_dirs = options.mount_dirs
     singularity = options.singularity
@@ -221,8 +195,6 @@ if __name__ == "__main__":
                        predict_number,
                        graph_number,
                        solve_number,
-                       db_name,
-                       db_host,
                        mount_dirs,
                        singularity,
                        queue,

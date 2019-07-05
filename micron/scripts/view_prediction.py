@@ -17,6 +17,7 @@ p.add('-d', required=True,
 p.add('-e', required=True, help='name of the experiment, e.g. fafb')
 p.add('-t', required=True, help='train number')
 p.add('-p', required=True, help='Predictions to visualize, e.g. "1, 2, 3"')
+p.add('-g', required=False, help='graph number')
 p.add('-s', required=False, help='solve number')
 p.add('-f', action='store_true', required=False, 
       help='Show selected nodes and edges only',
@@ -29,14 +30,13 @@ experiment = options.e
 train_number = int(options.t)
 predictions = tuple([int(p) for p in options.p.split(", ")])
 solve_number = int(options.s)
+graph_number = int(options.g)
 selected_only = bool(options.f)
 
 
 predict_setup_dirs = [os.path.join(os.path.join(base_dir, experiment), "02_predict/train_{}/predict_{}".format(train_number, p)) for p in predictions] 
 predict_configs = [os.path.join(base, "predict_config.ini") for base in predict_setup_dirs]
 dsets = ["volumes/soft_mask"]
-
-print(predict_setup_dirs)
 
 viewer = neuroglancer.Viewer()
 prediction_views = []
@@ -51,14 +51,10 @@ for k, base_dir in enumerate(predict_setup_dirs):
 
     f_raw = data_config.get("Data", "in_container")
     f_prediction = os.path.join(base_dir, data_config.get("Data", "out_container").split("./")[-1])
-    print(f_prediction)
     db_host = predict_config.get("Database", "db_host")
     db_name = predict_config.get("Database", "db_name")
     roi_offset = tuple([int(v) for v in np.array(data_config.get("Data", "in_offset").split(", "), dtype=int)])
     roi_size = tuple([int(v) for v in np.array(data_config.get("Data", "in_size").split(", "), dtype=int)])
-
-    print(roi_offset)
-    print(roi_size)
 
     raw = [
         daisy.open_ds(f_raw, 'volumes/raw/s%d'%s)
@@ -79,7 +75,8 @@ for k, base_dir in enumerate(predict_setup_dirs):
                              roi_size,
                              selected_only,
                              "selected_{}".format(solve_number),
-                             "solved_{}".format(solve_number))
+                             "solved_{}".format(solve_number),
+                             edge_collection="edges_g{}".format(graph_number))
     nodes_in_edges = []
     if edges:
         k = 0

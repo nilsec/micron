@@ -275,6 +275,8 @@ class Solver(object):
         else:
             v_selected = list(v_selected)
 
+        #v_selected = []
+
 
         if e_selected:
             e_selected = [set(e_to_t[e]) for e in e_selected]

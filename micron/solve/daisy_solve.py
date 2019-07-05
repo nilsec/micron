@@ -17,8 +17,6 @@ logging.basicConfig(
         format='%(asctime)s %(name)s %(levelname)-8s %(message)s',
         filename='solve.log',
         filemode='w+')
-# logging.getLogger(
-#         'daisy.persistence.mongodb_graph_provider').setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 console = logging.StreamHandler()
 console.setLevel(logging.INFO)
@@ -41,6 +39,7 @@ def solve(
         roi_size,
         context,
         solve_number,
+        graph_number,
         evidence_factor,
         comb_angle_factor,
         start_edge_prior,
@@ -78,11 +77,12 @@ def solve(
             time_limit,
             b,
             solve_number,
+            graph_number,
             selected_attr,
             solved_attr),
         check_function=lambda b: check_function(
             b,
-            'solve_' + str(solve_number),
+            'solve_s{}'.format(solve_number),
             db_name,
             db_host),
         num_workers=num_block_workers,
@@ -100,6 +100,7 @@ def solve_in_block(db_host,
                    time_limit,
                    block, 
                    solve_number,
+                   graph_number,
                    selected_attr="selected",
                    solved_attr="solved"):
 
@@ -110,7 +111,8 @@ def solve_in_block(db_host,
         db_name,
         db_host,
         mode='r+',
-        position_attribute=['z', 'y', 'x'])
+        position_attribute=['z', 'y', 'x'],
+        edges_collection="edges_g{}".format(graph_number))
 
     start_time = time.time()
     graph = graph_provider.get_graph(
@@ -152,7 +154,7 @@ def solve_in_block(db_host,
                    solved_attr,
                    num_edges,
                    time.time() - start_time))
-    write_done(block, 'solve_' + str(solve_number), db_name, db_host)
+    write_done(block, 'solve_s{}'.format(solve_number), db_name, db_host)
     return 0
 
 

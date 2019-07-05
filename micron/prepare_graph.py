@@ -76,7 +76,7 @@ def set_up_environment(base_dir,
     copyfile("./graph/graph.py", os.path.join(graph_setup_dir, "graph.py"))
 
     worker_config = create_worker_config(mount_dirs, singularity, queue)
-    graph_config = create_graph_config()
+    graph_config = create_graph_config(graph_number)
 
     with open(os.path.join(graph_setup_dir, "worker_config.ini"), "w+") as f:
         worker_config.write(f)
@@ -84,9 +84,10 @@ def set_up_environment(base_dir,
     with open(os.path.join(graph_setup_dir, "graph_config.ini"), "w+") as f:
         graph_config.write(f)
 
-def create_graph_config():
+def create_graph_config(graph_number):
     config = configparser.ConfigParser()
     config.add_section('Graph')
+    config.set('Graph', 'graph_number', str(graph_number))
     config.set('Graph', 'distance_threshold', str(0)) 
     config.set('Graph', 'block_size', "0, 0, 0")
     config.set('Graph', 'build_graph', os.path.abspath('./graph/build_graph.py'))
