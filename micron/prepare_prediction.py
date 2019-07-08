@@ -48,8 +48,8 @@ def set_up_environment(base_dir,
     input_params = locals()
     train_files = {}
 
-    predict_setup_dir = os.path.join(os.path.join(base_dir, experiment), "02_predict/train_{}/predict_{}".format(train_number, predict_number))
-    train_setup_dir = os.path.join(os.path.join(base_dir, experiment), "01_train/train_{}".format(train_number))
+    predict_setup_dir = os.path.join(os.path.join(base_dir, experiment), "02_predict/setup_t{}_p{}".format(train_number, predict_number))
+    train_setup_dir = os.path.join(os.path.join(base_dir, experiment), "01_train/setup_t{}".format(train_number))
     train_checkpoint = os.path.join(train_setup_dir, "train_net_checkpoint_{}.meta".format(iteration))
 
     if clean_up:
