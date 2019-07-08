@@ -60,9 +60,6 @@ class WriteCandidates(gp.BatchFilter):
                 'z': position[0],
                 'y': position[1],
                 'x': position[2],
-	        'degree': 0,
-                'selected': False,
-                'solved': False
             })
 
             logger.debug(
