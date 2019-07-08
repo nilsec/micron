@@ -116,6 +116,6 @@ if __name__ == "__main__":
     create_network((32, 322, 322), 'train_net', 0, [40,4,4], [1,1,10,10,1], 0.5)
 
     # Predict:
-    z = 0 # Enlarge for prediction
-    xy = 0 
+    z = 59
+    xy = 594 
     create_network((32+z, 322+xy, 322+xy), 'predict_net', 0, [40,4,4], [1,1,10,10,1], 0.5)
