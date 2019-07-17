@@ -8,13 +8,12 @@ import numpy as np
 import os
 import sys
 import time
+from dda3 import DDA3
 import configparser
 from daisy_check_functions import check_function, write_done
-from dda3 import DDA3
 from micron import read_predict_config, read_worker_config, read_data_config, read_graph_config
 
 logger = logging.getLogger(__name__)
-"""
 logging.basicConfig(
         level=logging.DEBUG,
         format='%(asctime)s %(name)s %(levelname)-8s %(message)s',
@@ -29,7 +28,6 @@ formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 console.setFormatter(formatter)
 # add the handler to the root logger
 logging.getLogger('').addHandler(console)
-"""
 
 def extract_edges(
         db_host,
@@ -132,15 +130,27 @@ def extract_edges_in_block(
     candidates = [(candidate_id, 
                    np.array([data[d] for d in ['z', 'y', 'x']])) 
                    for candidate_id, data in graph.nodes(data=True) if 'z' in data]
+    """
+    candidates = np.array([[candidate_id] + [data[d] for d in ['z', 'y', 'x']] 
+                            for candidate_id, data in graph.nodes(data=True) if 'z' in data],
+                            dtype=np.int32)
+    """
 
+
+    kdtree_start = time.time()
     kdtree = KDTree([candidate[1] for candidate in candidates])
     pairs = kdtree.query_pairs(distance_threshold, p=2.0, eps=0)
+    logger.info(
+        "Query pairs in %.3fs",
+        time.time() - kdtree_start)
+
 
     soft_mask_array = daisy.open_ds(soft_mask_container,
                                     soft_mask_dataset)
 
     voxel_size = soft_mask_array.voxel_size
 
+    evidence_start = time.time()
     for edge in pairs:
         pos_u_world = np.array(candidates[edge[0]][1])
         pos_v_world = np.array(candidates[edge[1]][1])
@@ -157,6 +167,10 @@ def extract_edges_in_block(
         graph.add_edge(candidates[edge[0]][0],
                        candidates[edge[1]][0],
                        evidence=evidence)
+    logger.info(
+        "Accumulate evidence in %.3fs",
+        time.time() - evidence_start)
+    
  
     logger.info("Found %d edges", graph.number_of_edges())
 
@@ -177,8 +191,8 @@ def extract_edges_in_block(
 
 
 if __name__ == "__main__":
-    logger = logging.getLogger("daisy")
-    logger.setLevel(logging.DEBUG)
+    #logger = logging.getLogger("daisy")
+    #logger.setLevel(logging.DEBUG)
 
     predict_config = sys.argv[1]
     worker_config = sys.argv[2]
