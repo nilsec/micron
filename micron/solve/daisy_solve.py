@@ -126,6 +126,7 @@ def solve_in_block(db_host,
     if num_edges == 0:
         logger.info("No edges in roi %s. Skipping"
                     % block.read_roi)
+        write_done(block, 'solve_s{}'.format(solve_number), db_name, db_host)
         return 0
 
     solver = Solver(graph, 
