@@ -44,7 +44,7 @@ def set_up_environment(base_dir,
     train_files = {}
 
     graph_setup_dir = os.path.join(os.path.join(base_dir, experiment), "03_graph/setup_t{}_p{}_g{}".format(train_number, predict_number, graph_number))
-    predict_setup_dir = os.path.join(os.path.join(base_dir, experiment), "02_predict/train_{}/predict_{}".format(train_number, predict_number))
+    predict_setup_dir = os.path.join(os.path.join(base_dir, experiment), "02_predict/setup_t{}_p{}".format(train_number, predict_number))
     train_setup_dir = os.path.join(os.path.join(base_dir, experiment), "01_train/train_{}".format(train_number))
 
     if clean_up:
