@@ -78,11 +78,6 @@ def extract_edges(
             distance_threshold,
             graph_number,
             b),
-        check_function=lambda b: check_function(
-            b,
-            'edges_g{}'.format(graph_number),
-            db_name,
-            db_host),
         num_workers=num_block_workers,
         processes=True,
         read_write_conflict=False,
@@ -98,7 +93,10 @@ def extract_edges_in_block(
         graph_number,
         block):
 
-    logger.info(
+    if check_function(block, "edges_g{}".format(graph_number), db_name, db_host):
+        return 0
+
+    logger.debug(
         "Finding edges in %s, reading from %s",
         block.write_roi, block.read_roi)
 
@@ -121,7 +119,7 @@ def extract_edges_in_block(
         write_done(block, 'edges_g{}'.format(graph_number), db_name, db_host)
         return 0
 
-    logger.info(
+    logger.debug(
         "Read %d candidates in %.3fs",
         graph.number_of_nodes(),
         time.time() - start)
@@ -142,7 +140,7 @@ def extract_edges_in_block(
     kdtree = KDTree([[candidate[1], candidate[2], candidate[3]] for candidate in candidates])
     #kdtree = KDTree(candidates[])
     pairs = kdtree.query_pairs(distance_threshold, p=2.0, eps=0)
-    logger.info(
+    logger.debug(
         "Query pairs in %.3fs",
         time.time() - kdtree_start)
 
@@ -151,52 +149,36 @@ def extract_edges_in_block(
                                     soft_mask_dataset)
 
     voxel_size = np.array(soft_mask_array.voxel_size, dtype=np.uint32)
-    soft_mask_roi = block.read_roi.snap_to_grid(voxel_size=voxel_size)
+    soft_mask_roi = block.read_roi.snap_to_grid(voxel_size=voxel_size).intersect(soft_mask_array.roi)
     soft_mask_array_data = soft_mask_array.to_ndarray(roi=soft_mask_roi).astype(np.float64)
 
     offset = np.array(np.array(soft_mask_roi.get_offset())/voxel_size, dtype=np.uint64)
-
-    pairs = np.array(list(pairs), dtype=np.uint64)
-
     evidence_start = time.time()
-    evidence_array = cpp_get_evidence(candidates, pairs, soft_mask_array_data, offset, voxel_size)
-    graph.add_weighted_edges_from(evidence_array, weight='evidence')
 
-    """
-    for edge in pairs:
-        pos_u_world = np.array(candidates[edge[0]][1])
-        pos_v_world = np.array(candidates[edge[1]][1])
-        pos_u = np.array(pos_u_world/voxel_size, dtype=int)
-        pos_v = np.array(pos_v_world/voxel_size, dtype=int)
-        dda3 = DDA3(pos_u, pos_v, scaling=voxel_size)
-        line = dda3.draw()
-        
-        evidence = 0.0
-        for p in line:
-            p *= voxel_size
-            evidence += soft_mask_array[daisy.Coordinate(p)]
-        evidence /= (len(line) * 255.)
-        graph.add_edge(candidates[edge[0]][0],
-                       candidates[edge[1]][0],
-                       evidence=evidence)
-    """
-    logger.info(
-        "Accumulate evidence in %.3fs",
-        time.time() - evidence_start)
+    if pairs:
+        pairs = np.array(list(pairs), dtype=np.uint64)
+        evidence_array = cpp_get_evidence(candidates, pairs, soft_mask_array_data, offset, voxel_size)
+        graph.add_weighted_edges_from(evidence_array, weight='evidence')
 
-    logger.info("Found %d edges", graph.number_of_edges())
+        logger.debug(
+            "Accumulate evidence in %.3fs",
+            time.time() - evidence_start)
 
-    logger.info(
-        "Extracted edges in %.3fs",
-        time.time() - start)
+        logger.debug("Found %d edges", graph.number_of_edges())
 
-    start = time.time()
+        logger.debug(
+            "Extracted edges in %.3fs",
+            time.time() - start)
 
-    graph.write_edges(block.write_roi)
+        start = time.time()
 
-    logger.info(
-        "Wrote edges in %.3fs",
-        time.time() - start)
+        graph.write_edges(block.write_roi)
+
+        logger.debug(
+            "Wrote edges in %.3fs",
+            time.time() - start)
+    else:
+        logger.debug("No pairs in block, skip")
 
     write_done(block, 'edges_g{}'.format(graph_number), db_name, db_host)
     return 0
