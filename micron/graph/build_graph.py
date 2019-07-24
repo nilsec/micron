@@ -8,7 +8,6 @@ import numpy as np
 import os
 import sys
 import time
-from dda3 import DDA3
 import configparser
 from daisy_check_functions import check_function, write_done
 from micron import read_predict_config, read_worker_config, read_data_config, read_graph_config
