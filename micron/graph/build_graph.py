@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+#from __future__ import absolute_import
 from scipy.spatial import cKDTree as KDTree
 import daisy
 from daisy.persistence import MongoDbGraphProvider
@@ -12,6 +12,7 @@ from dda3 import DDA3
 import configparser
 from daisy_check_functions import check_function, write_done
 from micron import read_predict_config, read_worker_config, read_data_config, read_graph_config
+from ext.cpp_get_evidence import cpp_get_evidence
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -127,18 +128,19 @@ def extract_edges_in_block(
 
     start = time.time()
 
+    """
     candidates = [(candidate_id, 
                    np.array([data[d] for d in ['z', 'y', 'x']])) 
                    for candidate_id, data in graph.nodes(data=True) if 'z' in data]
     """
     candidates = np.array([[candidate_id] + [data[d] for d in ['z', 'y', 'x']] 
                             for candidate_id, data in graph.nodes(data=True) if 'z' in data],
-                            dtype=np.int32)
-    """
+                            dtype=np.uint64)
 
 
     kdtree_start = time.time()
-    kdtree = KDTree([candidate[1] for candidate in candidates])
+    kdtree = KDTree([[candidate[1], candidate[2], candidate[3]] for candidate in candidates])
+    #kdtree = KDTree(candidates[])
     pairs = kdtree.query_pairs(distance_threshold, p=2.0, eps=0)
     logger.info(
         "Query pairs in %.3fs",
@@ -148,9 +150,19 @@ def extract_edges_in_block(
     soft_mask_array = daisy.open_ds(soft_mask_container,
                                     soft_mask_dataset)
 
-    voxel_size = soft_mask_array.voxel_size
+    voxel_size = np.array(soft_mask_array.voxel_size, dtype=np.uint32)
+    soft_mask_roi = block.read_roi.snap_to_grid(voxel_size=voxel_size)
+    soft_mask_array_data = soft_mask_array.to_ndarray(roi=soft_mask_roi).astype(np.float64)
+
+    offset = np.array(np.array(soft_mask_roi.get_offset())/voxel_size, dtype=np.uint64)
+
+    pairs = np.array(list(pairs), dtype=np.uint64)
 
     evidence_start = time.time()
+    evidence_array = cpp_get_evidence(candidates, pairs, soft_mask_array_data, offset, voxel_size)
+    graph.add_weighted_edges_from(evidence_array, weight='evidence')
+
+    """
     for edge in pairs:
         pos_u_world = np.array(candidates[edge[0]][1])
         pos_v_world = np.array(candidates[edge[1]][1])
@@ -167,11 +179,11 @@ def extract_edges_in_block(
         graph.add_edge(candidates[edge[0]][0],
                        candidates[edge[1]][0],
                        evidence=evidence)
+    """
     logger.info(
         "Accumulate evidence in %.3fs",
         time.time() - evidence_start)
-    
- 
+
     logger.info("Found %d edges", graph.number_of_edges())
 
     logger.info(
