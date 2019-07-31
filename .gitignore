@@ -3,4 +3,5 @@
 *.img
 *.pyc
 *.log
+*.nml
 .coverage
