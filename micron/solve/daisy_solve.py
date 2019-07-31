@@ -80,11 +80,6 @@ def solve(
             graph_number,
             selected_attr,
             solved_attr),
-        check_function=lambda b: check_function(
-            b,
-            'solve_s{}'.format(solve_number),
-            db_name,
-            db_host),
         num_workers=num_block_workers,
         fit='shrink')
 
@@ -106,6 +101,8 @@ def solve_in_block(db_host,
 
     logger.debug("Solving in block %s", block)
 
+    if check_function(block, 'solve_s{}'.format(solve_number), db_name, db_host):
+        return 0
 
     graph_provider = MongoDbGraphProvider(
         db_name,
