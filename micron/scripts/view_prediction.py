@@ -34,7 +34,7 @@ graph_number = int(options.g)
 selected_only = bool(options.f)
 
 
-predict_setup_dirs = [os.path.join(os.path.join(base_dir, experiment), "02_predict/train_{}/predict_{}".format(train_number, p)) for p in predictions] 
+predict_setup_dirs = [os.path.join(os.path.join(base_dir, experiment), "02_predict/setup_t{}_p{}".format(train_number, p)) for p in predictions] 
 predict_configs = [os.path.join(base, "predict_config.ini") for base in predict_setup_dirs]
 dsets = ["volumes/soft_mask"]
 
