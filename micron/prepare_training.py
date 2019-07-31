@@ -4,7 +4,7 @@ from shutil import copyfile, rmtree
 import configargparse
 import click
 
-p = configargparse.ArgParser(default_config_files=['~/.micron'])
+p = configargparse.ArgParser()
 p.add('-d', '--base_dir', required=False, 
       help='base directory for storing micron experiments, defaults to ``~/micron_experiments``', 
       default='~/micron_experiments')
@@ -39,7 +39,7 @@ def set_up_environment(base_dir,
 
 
     base_dir = os.path.expanduser(base_dir)
-    setup_dir = os.path.join(base_dir, experiment, "01_train/train_{}".format(train_number))
+    setup_dir = os.path.join(base_dir, experiment, "01_train/setup_t{}".format(train_number))
 
     if clean_up:
         if __name__ == "__main__":
