@@ -41,7 +41,7 @@ void get_evidence(size_t numCandidates,
         for (size_t k = 0; k < 3; k++){
             stepVec[k] = 1.0 * maxDirection[k] / maxLength;
         }
-        
+
         // Interpolate line
         uint64_t p_0 [3] = {posU[0] - softMaskOffset[0], 
                             posU[1] - softMaskOffset[1],
@@ -51,9 +51,16 @@ void get_evidence(size_t numCandidates,
         for (size_t step = 0; step<maxLength; step++) {
             uint64_t p [3];
             for (size_t k = 0; k < 3; k++){
-                p[k] = std::lrint((step + 1) * stepVec[k]/voxelSize[k] + posU[k]) - softMaskOffset[k];
+                // This is a nasty but needed for consistency with prior implementation
+                p[k] = static_cast <uint64_t> 
+                       (
+                            static_cast <uint64_t> 
+                            (
+                                (step + 1) * stepVec[k] + posU[k] * voxelSize[k] + 0.5
+                            ) 
+                            / (1.0 * voxelSize[k]) + 0.5
+                        ) - softMaskOffset[k];
             }
-
             if (!((p[0] == p_0[0]) && (p[1] == p_0[1]) && (p[2] == p_0[2])))
             {
                 evidence += softMaskArray[p[2] + softMaskShape[2] * (p[1] + softMaskShape[1] * p[0])];
