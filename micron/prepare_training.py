@@ -2,6 +2,7 @@ import os
 import sys
 from shutil import copyfile, rmtree
 import configargparse
+import configparser
 import click
 
 p = configargparse.ArgParser()
@@ -16,7 +17,8 @@ def set_up_environment(base_dir,
                        experiment,
                        train_number,
                        clean_up=False):
-    ''' Sets up the directory structure for training a network for microtubule prediction.
+    ''' Sets up the directory structure and config file for 
+        training a network for microtubule prediction.
 
     Args:
 
@@ -63,6 +65,33 @@ def set_up_environment(base_dir,
         copyfile(os.path.join(this_dir, "network/mknet.py"), os.path.join(setup_dir, "mknet.py"))
         copyfile(os.path.join(this_dir, "network/train_pipeline.py"), os.path.join(setup_dir, "train_pipeline.py"))
         copyfile(os.path.join(this_dir, "network/train.py"), os.path.join(setup_dir, "train.py"))
+        
+        train_config = create_train_config(training_container=["None", "None", "None"],
+                                           raw_dset=None,
+                                           gt_dset=None)
+
+        with open(os.path.join(setup_dir, "train_config.ini"), "w+") as f:
+            train_config.write(f)
+ 
+
+
+def create_train_config(training_container,
+                        raw_dset,
+                        gt_dset):
+
+    config = configparser.ConfigParser()
+
+    config.add_section('Training')
+    container_str = ""
+    for container in training_container:
+        container_str += "{}, ".format(container)
+    container_str = container_str[:-2]
+    config.set('Training', 'training_container', container_str)
+    config.set('Training', 'raw_dset', str(raw_dset))
+    config.set('Training', 'gt_dset', str(gt_dset))
+
+    return config
+
 
 
 if __name__ == "__main__":
