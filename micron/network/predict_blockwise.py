@@ -219,8 +219,10 @@ def predict_worker(
 
     worker_id = daisy.Context.from_env().worker_id
     worker_dir = os.path.join(predict_setup_dir, "worker_files")
-    if not os.path.exists(worker_dir):
+    try:
         os.makedirs(worker_dir)
+    except:
+        pass
 
     worker_instruction_file = os.path.join(worker_dir, '{}_worker_instruction.json'.format(worker_id))
     log_out = os.path.join(worker_dir, '{}_worker.out'.format(worker_id))
