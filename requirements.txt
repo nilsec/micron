@@ -16,4 +16,5 @@ tensorflow
 -e git+https://github.com/funkelab/funlib.learn.tensorflow.git@master#egg=funlib.learn.tensorflow
 -e git+https://github.com/funkelab/funlib.show.neuroglancer.git@master#egg=funlib.show.neuroglancer
 -e git+https://github.com/funkelab/funlib.math.git@master#egg=funlib.math
+-e git+https://github.com/funkey/gunpowder.git@master#egg=gunpowder
 
