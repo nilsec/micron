@@ -123,4 +123,4 @@ def label_connected_components(db_host,
 
     find_connected_components(graph, node_component_attribute=label_attribute, return_lut=False)
 
-return graph
+    return graph
