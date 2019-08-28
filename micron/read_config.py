@@ -38,6 +38,7 @@ def read_solve_config(solve_config):
     cfg_dict["selection_cost"] = int(config.get("Solve", "selection_cost"))
     cfg_dict["context"] = tuple([int(v) for v in np.array(config.get("Solve", "context").split(", "), dtype=int)])
     cfg_dict["daisy_solve"] = config.get("Solve", "daisy_solve")
+    cfg_dict["solve_block"] = config.get("Solve", "solve_block")
     cfg_dict["solve_number"] = int(config.get("Solve", "solve_number"))
     time_limit = config.get("Solve", "time_limit")
     if time_limit == "None":

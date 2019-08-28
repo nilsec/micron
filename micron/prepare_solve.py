@@ -141,6 +141,7 @@ def create_solve_config(solve_number,
     config.set('Solve', 'selection_cost', str(selection_cost))
     config.set('Solve', 'context', "400, 400, 400")
     config.set('Solve', 'daisy_solve', os.path.abspath("./solve/daisy_solve.py"))
+    config.set('Solve', 'solve_block', os.path.abspath("./solve/solve_block.py"))
     config.set('Solve', 'solve_number', str(solve_number))
     config.set('Solve', 'time_limit', str(120))
     config.set('Solve', 'selected_attr', selected_attr)

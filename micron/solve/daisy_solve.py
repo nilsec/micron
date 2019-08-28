@@ -8,7 +8,7 @@ import sys
 import time
 sys.path.append("../")
 from micron.graph.daisy_check_functions import check_function, write_done
-from solve_block import Solver
+from solver import Solver
 import configparser
 from micron import read_solve_config, read_predict_config, read_data_config, read_worker_config, read_graph_config
 
@@ -28,28 +28,34 @@ console.setFormatter(formatter)
 logging.getLogger('').addHandler(console)
 
 def solve(
-        db_host,
-        db_name,
-        singularity_container,
-        num_cpus,
+        predict_config,
+        worker_config,
+        data_config,
+        graph_config,
+        solve_config,
         num_block_workers,
-        queue,
         block_size,
         roi_offset,
         roi_size,
         context,
-        solve_number,
+        solve_block,
+        base_dir,
+        experiment,
+        train_number,
+        predict_number,
         graph_number,
-        evidence_factor,
-        comb_angle_factor,
-        start_edge_prior,
-        selection_cost,
-        time_limit,
-        selected_attr,
-        solved_attr,
+        solve_number,
+        queue,
+        singularity_container,
+        mount_dirs,
         **kwargs):
 
     source_roi = daisy.Roi(daisy.Coordinate(roi_offset), daisy.Coordinate(roi_size))
+
+    solve_setup_dir = os.path.join(os.path.join(base_dir, experiment), "04_solve/setup_t{}_p{}_g{}_s{}".format(train_number,
+                                                                                                               predict_number,
+                                                                                                               graph_number,
+                                                                                                               solve_number))
 
     block_write_roi = daisy.Roi(
         (0, 0, 0),
@@ -67,94 +73,71 @@ def solve(
         total_roi,
         block_read_roi,
         block_write_roi,
-        process_function=lambda b: solve_in_block(
-            db_host,
-            db_name,
-            evidence_factor,
-            comb_angle_factor,
-            start_edge_prior,
-            selection_cost,
-            time_limit,
-            b,
-            solve_number,
-            graph_number,
-            selected_attr,
-            solved_attr),
+        process_function=lambda: start_worker(predict_config,
+                                              worker_config,
+                                              data_config,
+                                              graph_config,
+                                              solve_config,
+                                              queue,
+                                              singularity_container,
+                                              mount_dirs,
+                                              solve_block,
+                                              solve_setup_dir),
         num_workers=num_block_workers,
         fit='shrink')
 
     logger.info("Finished solving, parameters id is %s", solve_number)
 
+def start_worker(predict_config,
+                 worker_config,
+                 data_config,
+                 graph_config,
+                 solve_config,
+                 queue,
+                 singularity_container,
+                 mount_dirs,
+                 solve_block,
+                 solve_setup_dir):
 
-def solve_in_block(db_host, 
-                   db_name, 
-                   evidence_factor, 
-                   comb_angle_factor, 
-                   start_edge_prior, 
-                   selection_cost, 
-                   time_limit,
-                   block, 
-                   solve_number,
-                   graph_number,
-                   selected_attr="selected",
-                   solved_attr="solved"):
+   
+    worker_id = daisy.Context.from_env().worker_id
 
-    logger.debug("Solving in block %s", block)
+    log_out = os.path.join(solve_setup_dir, '{}_worker.out'.format(worker_id))
+    log_err = os.path.join(solve_setup_dir, '{}_worker.err'.format(worker_id))
 
-    if check_function(block, 'solve_s{}'.format(solve_number), db_name, db_host):
-        return 0
+    base_command = "python -u {} {} {} {} {} {}".format(solve_block,
+                                                        predict_config,
+                                                        worker_config,
+                                                        data_config,
+                                                        graph_config,
+                                                        solve_config)
+    if queue == "None":
+        logger.warning("Running block **locally**, no queue provided.")
+        if singularity_container == "None":
+            logger.warning("Running block in current environment, no singularity image provided.")
+            cmd = [base_command]
+        else:
+            cmd = run_singularity(base_command,
+                                  singularity_container,
+                                  mount_dirs=mount_dirs,
+                                  execute=False,
+                                  expand=False)
+    else:
+        logger.info("Running block on queue {} and container {}".format(queue,
+                                                                        singularity_container))
+        cmd = run(command=base_command,
+                  queue=queue,
+                  num_gpus=0,
+                  num_cpus=1,
+                  singularity_image=singularity_container,
+                  mount_dirs=mount_dirs,
+                  execute=False,
+                  expand=False)
 
-    graph_provider = MongoDbGraphProvider(
-        db_name,
-        db_host,
-        mode='r+',
-        position_attribute=['z', 'y', 'x'],
-        edges_collection="edges_g{}".format(graph_number))
+    daisy.call(cmd, log_out=log_out, log_err=log_err)
 
-    start_time = time.time()
-    graph = graph_provider.get_graph(
-            block.read_roi)
-
-    num_nodes = graph.number_of_nodes()
-    num_edges = graph.number_of_edges()
-    logger.info("Reading graph with %d nodes and %d edges took %s seconds"
-                % (num_nodes, num_edges, time.time() - start_time))
-
-    if num_edges == 0:
-        logger.info("No edges in roi %s. Skipping"
-                    % block.read_roi)
-        write_done(block, 'solve_s{}'.format(solve_number), db_name, db_host)
-        return 0
-
-    solver = Solver(graph, 
-                    evidence_factor, 
-                    comb_angle_factor, 
-                    start_edge_prior, 
-                    selection_cost,
-                    time_limit,
-                    selected_attr,
-                    solved_attr)
-
-    solver.initialize()
-    solver.solve()
-
-    start_time = time.time()
-    graph.update_edge_attrs(
-            block.write_roi,
-            attributes=[selected_attr, solved_attr])
-
-    graph.update_node_attrs(
-            block.write_roi,
-            attributes=[selected_attr, solved_attr])
-
-    logger.info("Updating attributes %s & %s for %d edges took %s seconds"
-                % (selected_attr,
-                   solved_attr,
-                   num_edges,
-                   time.time() - start_time))
-    write_done(block, 'solve_s{}'.format(solve_number), db_name, db_host)
-    return 0
-
+    logger.info('Solve worker finished')
+ 
 
 if __name__ == "__main__":
     predict_config = sys.argv[1]
@@ -169,6 +152,8 @@ if __name__ == "__main__":
     graph_config_dict = read_graph_config(graph_config)
     solve_config_dict = read_solve_config(solve_config)
 
+    print("solve_config_dict", solve_config_dict)
+
     full_config = predict_config_dict
     full_config.update(worker_config_dict)
     full_config.update(data_config_dict)
@@ -177,6 +162,11 @@ if __name__ == "__main__":
 
     full_config["roi_offset"] = full_config["in_offset"]
     full_config["roi_size"] = full_config["in_size"]
+    full_config["predict_config"] = predict_config
+    full_config["worker_config"] = worker_config
+    full_config["data_config"] = data_config
+    full_config["graph_config"] = graph_config
+    full_config["solve_config"] = solve_config
 
     start_time = time.time()
     solve(**full_config)
