@@ -16,6 +16,7 @@ mkdir -p ${SINGULARITY_ROOTFS}/src/funlib/learn
 mkdir -p ${SINGULARITY_ROOTFS}/src/lsd
 mkdir -p ${SINGULARITY_ROOTFS}/src/funlib/math
 mkdir -p ${SINGULARITY_ROOTFS}/src/micron
+mkdir -p ${SINGULARITY_ROOTFS}/src/funlib/run
 
 %files
 micron /src/micron/micron
@@ -53,6 +54,19 @@ conda install python=3.6
 # install tensorflow
 
 conda install -c anaconda tensorflow-gpu
+
+# install pylp
+conda install -c funkey pylp
+
+# install funlib.run
+RUN_ROOT=/src/funlib/run
+RUN_REPO=https://github.com/funkelab/funlib.run.git
+RUN_REV=bf383a76865b998e621c034de4f84e2ac9f69377
+cd ${RUN_ROOT}
+git clone ${RUN_REPO} . && \
+git checkout ${RUN_REV}
+make install-full
+PYTHONPATH=${RUN_ROOT}:$PYTHONPATH
 
 # dependencies for lsd
 
@@ -223,6 +237,13 @@ export PYTHONPATH=${FUNLIB_MATH_ROOT}:$PYTHONPATH
 export PYTHONPATH=/src/lsd:$PYTHONPATH
 export PATH=/miniconda/bin:${PATH}
 export PYTHONPATH=/src/micron:$PYTHONPATH
+
+#Gurobi environment variables - adapt if needed:
+export GUROBI_HOME=/misc/local/gurobi-8.0.1
+export PATH=${GUROBI_HOME}/bin:${PATH}
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${GUROBI_HOME}/lib
+export GRB_LICENSE_FILE=${GUROBI_HOME}/gurobi.lic
+#export GUROBI_ROOT_DIR=/opt/gurobi810/linux64
 
 # disable threads for numpy and the like, they get into our way when we
 # pre-fetch batches using multiple processes
