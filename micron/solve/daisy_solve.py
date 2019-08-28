@@ -11,6 +11,7 @@ from micron.graph.daisy_check_functions import check_function, write_done
 from solver import Solver
 import configparser
 from micron import read_solve_config, read_predict_config, read_data_config, read_worker_config, read_graph_config
+from funlib.run import run, run_singularity
 
 logging.basicConfig(
         level=logging.DEBUG,
@@ -121,7 +122,8 @@ def start_worker(predict_config,
                                   singularity_container,
                                   mount_dirs=mount_dirs,
                                   execute=False,
-                                  expand=False)
+                                  expand=False,
+                                  batch=True)
     else:
         logger.info("Running block on queue {} and container {}".format(queue,
                                                                         singularity_container))
@@ -132,7 +134,8 @@ def start_worker(predict_config,
                   singularity_image=singularity_container,
                   mount_dirs=mount_dirs,
                   execute=False,
-                  expand=False)
+                  expand=False,
+                  batch=True)
 
     daisy.call(cmd, log_out=log_out, log_err=log_err)
 

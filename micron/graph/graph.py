@@ -1,6 +1,6 @@
 import os
 from subprocess import check_call
-from pysub import run, run_singularity
+from funlib.run import run, run_singularity
 import logging
 from micron import read_predict_config, read_worker_config, read_data_config, read_graph_config
 
