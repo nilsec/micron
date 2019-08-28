@@ -7,7 +7,7 @@ import numpy as np
 import os
 import sys
 import pymongo
-from micron.gunpowder import WriteCandidates
+from micron.gp import WriteCandidates
 
 def predict(
         train_setup_dir,
