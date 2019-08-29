@@ -5,7 +5,7 @@
 
 1. Install and start a mongodb instance:
 
-- Download and install mongodb https://www.mongodb.com/
+- Download and install [mongodb](https://www.mongodb.com/)
 - Start a mongodb server on your local machine or a server of your choice via
 ```
 sudo mongod --config /etc/mongod.conf 
