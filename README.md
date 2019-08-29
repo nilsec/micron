@@ -13,7 +13,8 @@ sudo mongod --config /etc/mongod.conf
 
 2. For usage in a container environment a [Gurobi floating licencse](https://www.gurobi.com/documentation/8.1/quickstart_mac/setting_up_and_using_a_flo.html) is required.
    If that is not available a free academic license can be obtained [here](https://www.gurobi.com/downloads/end-user-license-agreement-academic/). In the latter case
-   a local installation of micron needs to be performed.
+   a local installation of micron needs to be performed. Note that this only affects the final solve step. All other taks up to solving can be run without Gurobi in 
+   the provided singularity image.
 
 
 3. Install Singularity and build image
@@ -29,11 +30,15 @@ cd micron/micron
 python prepare_training.py -d <base_dir> -e <experiment_name> -t <id_of_training_run>
 ```
 
-This will create a directory at <base_dir>/<experiment_name>/01_train/setup_t<id_of_training_run> with all the necessary 
+This will create a directory at 
+```
+<base_dir>/<experiment_name>/01_train/setup_t<id_of_training_run> 
+```
+with all the necessary 
 files to train a network that can detect microtubules in EM data.
 
 In order to train a network on your data you need to provide ground truth skeletons and the corresponding raw data.
-The paths to the data need to be specified in the provided train_config.ini. Ground truth skeletons should be given
+The paths to the data need to be specified in the provided ```train_config.ini```. Ground truth skeletons should be given
 as volumetric data where each skeleton is represented by a corresponding id in the ground truth volume. Raw 
 data and ground truth should have the same shape, background should be labeled as zero.
 
@@ -63,7 +68,11 @@ cd micron/micron
 python prepare_prediction -d <base_dir> -e <experiment_name> -t <id_of_training_run> -i <checkpoint/iteration> -p <id_of_prediction>
 ```
 
-This will create a directory at <base_dir>/<experiment_name>/02_predict/setup_t<id_of_training_run>_<id_of_prediction> with all the
+This will create a directory at 
+```
+<base_dir>/<experiment_name>/02_predict/setup_t<id_of_training_run>_<id_of_prediction>
+```
+ with all the
 necessary files to predict a region of interest with an already trained network as specified by the -t and -i flags.
 
 In particular the directory will hold 3 config files that specify parameters for the given predict run:
@@ -97,16 +106,21 @@ out_container = ./softmask.zarr
     the name of any job queue that might be available on a cluster.
     If ```None``` is given the prediction will be run locally.
 
-If the necessary adjustmants have been made a prediction can be started via
+If the necessary adjustments have been made a prediction can be started via
 ```
 python predict.py 
 ```
 
 Once started the predict script writes microtubule candidates to the specified database and 
 keeps track of which blocks have been predicted. Restarting the prediction will skip already 
-processed blocks. Logs for each worker are written to ./worker_files/<worker_id>_worker.out.
+processed blocks. Logs for each worker are written to
+ ``` 
+./worker_files/<worker_id>_worker.out
+```
 
 ##### 3. Constructing the microtubule graph:
+
+
 ```
 cd micron/micron
 python prepare_graph.py -d <base_dir> -e <experiment_name> -t <id_of_training_run> -p <id_of_prediction> -g <id_of_graph>
