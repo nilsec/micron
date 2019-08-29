@@ -47,7 +47,7 @@ An example train_config.ini:
 training_container = ~/micron_data/a+_master.h5, ~/micron_data/b+_master.h5, ~/micron_data/c+_master.h5
 raw_dset = raw
 gt_dset = tracing
-
+```
 Once the appropriate changes have been made to the train config, network training can be started
 via: 
 ```
