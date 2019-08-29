@@ -11,7 +11,9 @@
 sudo mongod --config /etc/mongod.conf 
 ```
 
-2. Gurobi setup (path in Singularity)
+2. For usage in a container environment a [Gurobi floating licencse](https://www.gurobi.com/documentation/8.1/quickstart_mac/setting_up_and_using_a_flo.html) is required.
+   If that is not available a free academic license can be obtained [here](https://www.gurobi.com/downloads/end-user-license-agreement-academic/). In the latter case
+   a local installation of micron needs to be performed.
 
 
 3. Install Singularity and build image
@@ -35,12 +37,16 @@ The paths to the data need to be specified in the provided train_config.ini. Gro
 as volumetric data where each skeleton is represented by a corresponding id in the ground truth volume. Raw 
 data and ground truth should have the same shape, background should be labeled as zero.
 
+Our training data traced on the 3 CREMI test cubes and raw tracings (Knossos skeletons)
+is available [here](https://github.com/nilsec/micron_data.git) and 
+can be used for microtubule prediction on FAFB. If you want to train on your own data this can be used as an example
+of how to format your data for training. 
+
 An example train_config.ini:
 ```
-training_container = ../00_data/a+_master.h5, ../00_data/b+_master.h5, ../00_data/c+_master.h5
+training_container = ~/micron_data/a+_master.h5, ~/micron_data/b+_master.h5, ~/micron_data/c+_master.h5
 raw_dset = raw
 gt_dset = tracing
-```
 
 Once the appropriate changes have been made to the train config, network training can be started
 via: 
