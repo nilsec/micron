@@ -91,7 +91,7 @@ in_size = 76000, 52000, 64000
 out_container = ./softmask.zarr
 ```
 
-2. predict_config.ini
+2. ```predict_config.ini```
 	Holds paths to necessary scripts and ids as specified. Furthermore it
     contains information about the database to write the predictions to.
     The db_host entry should be adjusted to point to the mongodb 
@@ -99,7 +99,7 @@ out_container = ./softmask.zarr
     and should not be modified.
 
 
-3. worker_config.ini
+3. ```worker_config.ini```
     Holds information about how many workers (and thus GPUs) to use
     for the prediction. Furthermore a singularity container
     to run the prediction in can be specified as well as
