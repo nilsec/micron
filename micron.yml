@@ -1,21 +1,30 @@
-name: micron
+name: microntest
 channels:
     - anaconda
     - conda-forge
     - defaults
+    - funkey
 dependencies:
     - python==3.6
     - numpy
     - scipy
-    - cython
+    - cython==0.29.10
     - pymongo
     - click
     - pip
-	- ConfigArgParse
+    - ConfigArgParse
     - ConfigParser
     - mlpack
-	- pip:
-		- "--editable=git+git://github.com/funkelab/daisy.git@master#egg=daisy"
-		- "--editable=git+git://github.com/funkey/zarr.git@master#egg=zarr"
-		- "--editable=git+git://github.com/funkelab/funlib.segment.git@master#egg=funlib.learn.tensorflow"
-		- "--editable=git+git://github.com/funkelab/funlib.show.neuroglancer.git@master#egg=funlib.show.neuroglancer"
+    - flake8
+    - tensorflow
+    - pylp
+    - pip:
+        - "--editable=git+git://github.com/funkey/numcodecs.git@f950047d7b666723f81006cbdfd82c0e6705c39c#egg=numcodecs"
+        - "--editable=git+git://github.com/funkelab/daisy.git@master#egg=daisy"
+        - "--editable=git+git://github.com/funkey/zarr.git@master#egg=zarr"
+        - "--editable=git+git://github.com/funkelab/funlib.segment.git@master#egg=funlib.learn.tensorflow"
+        - "--editable=git+git://github.com/funkelab/funlib.show.neuroglancer.git@master#egg=funlib.show.neuroglancer"
+        - "--editable=git+git://github.com/funkelab/funlib.math.git@master#egg=funlib.math"
+        - "--editable=git+git://github.com/funkelab/funlib.run.git@master#egg=funlib.run"
+        - "--editable=git+git://github.com/funkey/gunpowder.git@master#egg=gunpowder"
+

@@ -13,12 +13,27 @@ sudo mongod --config /etc/mongod.conf
 
 2. For usage in a container environment a [Gurobi floating licencse](https://www.gurobi.com/documentation/8.1/quickstart_mac/setting_up_and_using_a_flo.html) is required.
    If that is not available a free academic license can be obtained [here](https://www.gurobi.com/downloads/end-user-license-agreement-academic/). In the latter case
-   a local installation of micron needs to be performed. Note that this only affects the final solve step. All other taks up to solving can be run without Gurobi in 
-   the provided singularity image.
+   task 4 (solving the constrained optimization problem) does not support usage of the provided singularity container.
 
 
-3. Install Singularity and build image
+3. Install [Singularity](https://singularity.lbl.gov/docs-installation)
 
+## Installation
+1. Clone the repository
+```
+git clone https://github.com/nilsec/micron.git
+```
+2. Install provided conda environment
+```
+cd micron
+conda env create -f micron.yml
+```
+3. Install micron and build singularity image
+```
+conda activate micron
+make
+make singularity
+```
 
 ## Usage
 Reconstructing microtubules in any given EM dataset consists of the following 4 steps:
@@ -118,6 +133,8 @@ processed blocks. Logs for each worker are written to
 ./worker_files/<worker_id>_worker.out
 ```
 
+The final two steps follow the same exact pattern and each generate one additional config file that should be 
+edited to need.
 ##### 3. Constructing the microtubule graph:
 
 
@@ -129,7 +146,7 @@ python prepare_graph.py -d <base_dir> -e <experiment_name> -t <id_of_training_ru
 ##### 4. Solving the constrained optimization problem to extract final microtubule trajectories:
 ```
 cd micron/micron
-python prepare_solve.py -d <base_dir> -e <experiment_name> -t <id_of_training_run> -p <id_of_prediction> -g <id_of_graph>
+python prepare_solve.py -d <base_dir> -e <experiment_name> -t <id_of_training_run> -p <id_of_prediction> -g <id_of_graph> -s <id_of_solve_run>
 ```
 
 

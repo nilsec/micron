@@ -3,20 +3,7 @@ TMP_FILE:=$(shell mktemp).img
 
 default:
 	python setup.py install
-	-rm -rf dist build $(PKG).egg-info
-
-install-pip:
-	pip install .
-	-rm -rf dist build $(PKG).egg-info
-
-.PHONY: install-full
-install-full:
-	pip install .[full]
-	-rm -rf dist build $(PKG).egg-info
-
-.PHONY: install-dev
-install-de:
-	pip install -e .[full]
+	python setup.py build_ext --inplace
 	-rm -rf dist build $(PKG).egg-info
 
 singularity/$(PKG).img:
