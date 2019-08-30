@@ -8,7 +8,7 @@
 - Download and install [mongodb](https://www.mongodb.com/)
 - Start a mongodb server on your local machine or a server of your choice via
 ```
-sudo mongod --config /etc/mongod.conf 
+sudo mongod --config <path_to_config>
 ```
 
 2. For usage in a container environment a [Gurobi floating licencse](https://www.gurobi.com/documentation/8.1/quickstart_mac/setting_up_and_using_a_flo.html) is required.

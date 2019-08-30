@@ -17,7 +17,7 @@ setup(
         'micron.graph',
         'micron.graph.ext',
         'micron.scripts',
-        'micron.gunpowder',
+        'micron.gp',
         'micron.solve',
             ],
      ext_modules=cythonize([
@@ -33,8 +33,6 @@ setup(
         'zarr',
         'daisy',
         'ConfigParser',
-        'neuroglancer',
-        'funlib.show.neuroglancer',
         'scipy',
         'pymongo',
         'ConfigArgParse',

@@ -2,6 +2,7 @@ PKG=micron
 TMP_FILE:=$(shell mktemp).img
 
 default:
+	pip install -r requirements.txt
 	python setup.py install
 	python setup.py build_ext --inplace
 	-rm -rf dist build $(PKG).egg-info

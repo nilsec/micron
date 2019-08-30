@@ -18,4 +18,3 @@ tensorflow
 -e git+https://github.com/funkelab/funlib.math.git@master#egg=funlib.math
 -e git+https://github.com/funkelab/funlib.run.git@master#egg=funlib.run
 -e git+https://github.com/funkey/gunpowder.git@master#egg=gunpowder
--e git+https://github.com/funkey/pylp.git@master#egg=pylp
