@@ -70,9 +70,16 @@ def set_up_environment(base_dir,
                                            raw_dset=None,
                                            gt_dset=None)
 
+        worker_config = create_worker_config(mount_dirs=None,
+                                             singularity=os.path.abspath("../singularity/micron.img"),
+                                             queue=None)
+
         with open(os.path.join(setup_dir, "train_config.ini"), "w+") as f:
             train_config.write(f)
- 
+
+        with open(os.path.join(setup_dir, "worker_config.ini"), "w+") as f:
+            worker_config.write(f)
+
 
 
 def create_train_config(training_container,
@@ -90,6 +97,30 @@ def create_train_config(training_container,
     config.set('Training', 'raw_dset', str(raw_dset))
     config.set('Training', 'gt_dset', str(gt_dset))
 
+    return config
+
+
+def create_worker_config(mount_dirs,
+                         singularity,
+                         queue):
+
+    config = configparser.ConfigParser()
+    config.add_section('Worker')
+    if singularity == None or singularity == "None" or not singularity:
+        config.set('Worker', 'singularity_container', str(None))
+    else:
+        config.set('Worker', 'singularity_container', str(singularity))
+    config.set('Worker', 'num_cpus', str(5))
+    config.set('Worker', 'num_block_workers', str(1))
+    config.set('Worker', 'num_cache_workers', str(5))
+    if queue == None or queue == "None" or not queue:
+        config.set('Worker', 'queue', str(None))
+    else:
+        config.set('Worker', 'queue', str(queue))
+    if mount_dirs == None or mount_dirs == "None" or not mount_dirs:
+        config.set('Worker', 'mount_dirs', "")
+    else:
+        config.set('Worker', 'mount_dirs', mount_dirs)
     return config
 
 

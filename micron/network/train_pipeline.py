@@ -3,16 +3,19 @@ import sys
 from gunpowder import *
 from gunpowder.tensorflow import *
 from lsd.gp import AddLocalShapeDescriptor
+from stack import Stack
 import os
 import math
 import json
 import tensorflow as tf
 import numpy as np
+from micron import read_train_config
 
 
 def train_until(max_iteration,
-                data_dir,
-                samples):
+                training_container,
+                raw_dset,
+                gt_dset):
 
     """
     max_iteration [int]: Number of training iterations
@@ -70,10 +73,10 @@ def train_until(max_iteration,
 
     data_sources = tuple(
         Hdf5Source(
-            os.path.join(data_dir, sample + '.h5'),
+            container,
             datasets = {
-                raw: 'raw',
-                tracing: 'tracing'
+                raw: raw_dset,
+                tracing: gt_dset
             },
             array_specs = {
                 raw: ArraySpec(interpolatable=True),
@@ -84,7 +87,7 @@ def train_until(max_iteration,
         Pad(raw, None) +
         Pad(tracing, Coordinate((10, 100, 100))) + 
         RandomLocation()
-        for sample in samples
+        for container in training_container
     )
 
 
@@ -110,6 +113,7 @@ def train_until(max_iteration,
         PreCache(
             cache_size=40,
             num_workers=10) +
+        Stack(5) +
         Train(
             'train_net',
             optimizer=config['optimizer'],
@@ -161,14 +165,7 @@ def train_until(max_iteration,
 
 if __name__ == "__main__":
     iteration = int(sys.argv[1])
-    data_dir = '/groups/funke/home/ecksteinn/Projects/microtubules/micronet/micronet/data'
-    samples = [
-        'a+_master',
-        'b+_master',
-        'c+_master'
-    ]
+    train_config = read_train_config("./train_config.ini")
+    train_config["max_iteration"] = iteration
 
-    train_until(iteration,
-                data_dir,
-                samples)
-
+    train_until(**train_config)
