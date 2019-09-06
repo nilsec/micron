@@ -28,10 +28,10 @@ elif worker_config["singularity_container"] != "None" and worker_config["queue"]
         singularity_image=worker_config["singularity_container"],
         mount_dirs=worker_config["mount_dirs"],
         queue=worker_config["queue"],
-        num_cpus=num_cpus,
+        num_cpus=worker_config["num_cpus"],
         num_gpus=0,
         batch=True,
-        shell=True)
+        execute=True)
 
 else:
     assert(worker_config["singularity_container"] == "None")
