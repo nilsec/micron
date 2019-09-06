@@ -2,6 +2,7 @@ import os
 from subprocess import check_call
 from funlib.run import run, run_singularity
 import logging
+import scipy.interpolate.interpnd # Workaround for cython __reduce_cython__ error
 from micron import read_predict_config, read_worker_config, read_data_config, read_graph_config, read_solve_config
 
 predict_config = read_predict_config("predict_config.ini")
