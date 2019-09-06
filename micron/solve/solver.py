@@ -169,25 +169,56 @@ class Solver(object):
             t_conflict = []
 
             # Detect if vertex is isolated selected:
+            v_isolated = False
             if v_data[self.selected_attr]:
                 v_incident_selected = [e for e in v_incident if e[2][self.selected_attr]]
-                v_isolated = False
                 if not v_incident_selected:
+                    """
+                    We need to make sure to avoid 
+                    impossible situations that are 
+                    caused by unsolved incident edges where 
+                    constraints are not dropped. 
+                    This can happen 
+                    if all incident edges
+                    are unsolved, and connected 
+                    to solved and selected vertices. Here we
+                    detect this case and exclude the
+                    offending vertex from the forced
+                    isolated vertices.
+
+                    v_incident_not_solved = [e for e in v_incident if not e[2][self.solved_attr]]
+                    if v_incident_not_solved:
+                        If there is any not solved 
+                        edge we do not drop the 
+                        constraints.
+                        If there is no edge that
+                        has an unsolved target vertex
+                        we cannot include the vertex.
+                        vertices_in_incident_not_solved = [v for e in v_incident_not_solved for v in [e[0], e[1]]]
+                        unsolved_vertices_in_incident = [v for v in vertices_in_incident_not_solved if not self.graph.nodes[v][self.solved_attr]]
+                        if not unsolved_vertices_in_incident:
+                            continue
+                    """ 
                     v_selected.add(v)
                     v_isolated = True
 
-            for e1 in v_incident:
+            extra_start_edge = []
+            if v_isolated:
+                extra_start_edge = [START_EDGE]
+
+            for e1 in v_incident + extra_start_edge:
                 # Detect if edge is isolated selected:
                 e1_sorted = tuple(sorted((e1[0], e1[1])))
                 e_isolated = False
+                
+                if e1 != START_EDGE:
+                    if e1[2][self.selected_attr]:
+                        e1_u_selected = [e for e in self.graph.edges(e1[0], data=True) if e[2][self.selected_attr] and e1_sorted in self.edges_fully_contained]
+                        e1_v_selected = [e for e in self.graph.edges(e1[1], data=True) if e[2][self.selected_attr] and e1_sorted in self.edges_fully_contained]
 
-                if e1[2][self.selected_attr]:
-                    e1_u_selected = [e for e in self.graph.edges(e1[0], data=True) if e[2][self.selected_attr] and e1_sorted in self.edges_fully_contained]
-                    e1_v_selected = [e for e in self.graph.edges(e1[1], data=True) if e[2][self.selected_attr] and e1_sorted in self.edges_fully_contained]
-
-                    if len(e1_u_selected) == 1 and len(e1_v_selected) == 1:
-                        e_selected.add(tuple(sorted([e1[0], e1[1]])))
-                        e_isolated = True
+                        if len(e1_u_selected) == 1 and len(e1_v_selected) == 1:
+                            e_selected.add(tuple(sorted([e1[0], e1[1]])))
+                            e_isolated = True
 
                 # Build triplets:
                 for e2 in list(v_incident) + [START_EDGE]:
@@ -271,11 +302,11 @@ class Solver(object):
             v_selected_tmp = [center_to_t[v] for v in v_selected]
             v_selected = []
             for subset in v_selected_tmp:
-                v_selected.append(set([v for v in subset if (START_EDGE[0], START_EDGE[1]) in t_to_e[v]]))
+                #v_selected.append(set([v for v in subset if (START_EDGE[0], START_EDGE[1]) in t_to_e[v]]))
+                v_selected.append(set([v for v in subset]))
+
         else:
             v_selected = list(v_selected)
-
-        #v_selected = []
 
 
         if e_selected:
@@ -326,10 +357,15 @@ class Solver(object):
         assert(len(e_data_in_t) == 2)
 
         if (START_EDGE[0], START_EDGE[1]) in e_in_t:
-            e_data_in_t.remove(None)
-            assert(len(e_data_in_t) == 1)
-            edge_cost = self.evidence_factor * e_data_in_t[0]["evidence"] + 2.0 * self.start_edge_prior
-            comb_edge_cost = 0.0
+            if e_in_t == ((START_EDGE[0], START_EDGE[1]), (START_EDGE[0], START_EDGE[1])):
+                edge_cost = 4.0 * self.start_edge_prior
+                comb_edge_cost = 0.0
+
+            else:
+                e_data_in_t.remove(None)
+                assert(len(e_data_in_t) == 1)
+                edge_cost = self.evidence_factor * e_data_in_t[0]["evidence"] + 2.0 * self.start_edge_prior
+                comb_edge_cost = 0.0
 
         else:
             # Edge Cost:
@@ -377,24 +413,3 @@ class Solver(object):
         angle = np.pi - angle
 
         return angle
-
-
-def get_graph(db_host="mongodb://ecksteinn:ecksteinn@10.150.100.155:27017", 
-              db_name="calyx_test_medium",
-              roi=daisy.Roi((160000, 123000, 449500), (1000,1000,1000))): 
-
-        graph_provider = MongoDbGraphProvider(db_name,
-                                              db_host,
-                                              mode='r',
-                                              position_attribute=['z', 'y', 'x'])
-
-        graph = graph_provider.get_graph(roi)
-        return graph
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    graph = get_graph()
-    solver = Solver(graph, 12,14,180,-80)
-    solver.initialize()
-    solver.solve()
