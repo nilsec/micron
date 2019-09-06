@@ -142,11 +142,19 @@ edited to need.
 cd micron/micron
 python prepare_graph.py -d <base_dir> -e <experiment_name> -t <id_of_training_run> -p <id_of_prediction> -g <id_of_graph>
 ```
+Go to the newly created directory, edit config files to need.
+```
+python graph.py
+```
 
 ##### 4. Solving the constrained optimization problem to extract final microtubule trajectories:
 ```
 cd micron/micron
 python prepare_solve.py -d <base_dir> -e <experiment_name> -t <id_of_training_run> -p <id_of_prediction> -g <id_of_graph> -s <id_of_solve_run>
+```
+Go to the newly created directory, edit config files to need.
+```
+python solve.py
 ```
 
 
