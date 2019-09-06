@@ -3,6 +3,7 @@ from subprocess import check_call
 from funlib.run import run, run_singularity
 import logging
 from micron import read_worker_config, read_train_config
+import sys
 
 iteration = int(sys.argv[1])
 worker_config = read_worker_config("worker_config.ini")
@@ -31,10 +32,10 @@ elif worker_config["singularity_container"] != "None" and worker_config["queue"]
         singularity_image=worker_config["singularity_container"],
         mount_dirs=worker_config["mount_dirs"],
         queue=worker_config["queue"],
-        num_cpus=num_cpus,
+        num_cpus=worker_config["num_cpus"],
         num_gpus=1,
         batch=False,
-        shell=True)
+        execute=True)
 
 else:
     assert(worker_config["singularity_container"] == "None")
