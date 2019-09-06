@@ -13,20 +13,7 @@ import configparser
 from micron import read_solve_config, read_predict_config, read_data_config, read_worker_config, read_graph_config
 from funlib.run import run, run_singularity
 
-logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s %(name)s %(levelname)-8s %(message)s',
-        filename='solve.log',
-        filemode='w+')
 logger = logging.getLogger(__name__)
-console = logging.StreamHandler()
-console.setLevel(logging.INFO)
-# set a format which is simpler for console use
-formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-# tell the handler to use this format
-console.setFormatter(formatter)
-# add the handler to the root logger
-logging.getLogger('').addHandler(console)
 
 def solve(
         predict_config,
@@ -140,7 +127,6 @@ def start_worker(predict_config,
     daisy.call(cmd, log_out=log_out, log_err=log_err)
 
     logger.info('Solve worker finished')
- 
 
 if __name__ == "__main__":
     predict_config = sys.argv[1]
