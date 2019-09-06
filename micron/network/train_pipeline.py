@@ -3,7 +3,6 @@ import sys
 from gunpowder import *
 from gunpowder.tensorflow import *
 from lsd.gp import AddLocalShapeDescriptor
-from stack import Stack
 import os
 import math
 import json
@@ -113,7 +112,6 @@ def train_until(max_iteration,
         PreCache(
             cache_size=40,
             num_workers=10) +
-        Stack(5) +
         Train(
             'train_net',
             optimizer=config['optimizer'],
