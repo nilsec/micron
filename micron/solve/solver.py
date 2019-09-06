@@ -173,35 +173,17 @@ class Solver(object):
             if v_data[self.selected_attr]:
                 v_incident_selected = [e for e in v_incident if e[2][self.selected_attr]]
                 if not v_incident_selected:
-                    """
-                    We need to make sure to avoid 
-                    impossible situations that are 
-                    caused by unsolved incident edges where 
-                    constraints are not dropped. 
-                    This can happen 
-                    if all incident edges
-                    are unsolved, and connected 
-                    to solved and selected vertices. Here we
-                    detect this case and exclude the
-                    offending vertex from the forced
-                    isolated vertices.
-
-                    v_incident_not_solved = [e for e in v_incident if not e[2][self.solved_attr]]
-                    if v_incident_not_solved:
-                        If there is any not solved 
-                        edge we do not drop the 
-                        constraints.
-                        If there is no edge that
-                        has an unsolved target vertex
-                        we cannot include the vertex.
-                        vertices_in_incident_not_solved = [v for e in v_incident_not_solved for v in [e[0], e[1]]]
-                        unsolved_vertices_in_incident = [v for v in vertices_in_incident_not_solved if not self.graph.nodes[v][self.solved_attr]]
-                        if not unsolved_vertices_in_incident:
-                            continue
-                    """ 
                     v_selected.add(v)
                     v_isolated = True
 
+            """
+            Add triplet with two
+            start edges if vertex is 
+            isolated. This option is 
+            always possible and avoids
+            infeasible edge cases 
+            with isolated vertices.
+            """
             extra_start_edge = []
             if v_isolated:
                 extra_start_edge = [START_EDGE]
