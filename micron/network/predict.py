@@ -15,7 +15,7 @@ start = time.time()
 if worker_config["singularity_container"] != "None":
     run_singularity("python mknet.py",
                     singularity_image=worker_config["singularity_container"],
-                    mount_dirs=["/groups", "/nrs", "/scratch", "/misc"],
+                    mount_dirs=worker_config["mount_dirs"],
                     execute=True)
 
 else:
