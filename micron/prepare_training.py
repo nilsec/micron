@@ -118,7 +118,7 @@ def create_worker_config(mount_dirs,
     else:
         config.set('Worker', 'queue', str(queue))
     if mount_dirs == None or mount_dirs == "None" or not mount_dirs:
-        config.set('Worker', 'mount_dirs', "")
+        config.set('Worker', 'mount_dirs', "None")
     else:
         config.set('Worker', 'mount_dirs', mount_dirs)
     return config
