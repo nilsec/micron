@@ -30,7 +30,7 @@ def max_detection(
 
     upsampled = conv_transpose(
         max_pool,
-        conv_filter.astype(np.float16),
+        conv_filter.astype(np.float32),
         [1, *sm_dims, 1],
         w_dims,
         padding="SAME",
@@ -47,7 +47,7 @@ def max_detection(
     # Fix doubles
     # Check the necessary window size and adapt for isotropic vs unisotropic nms:
     double_suppresion_window = [1 if dim == 1 else 3 for dim in w_dims]
-    sm_maxima = tf.add(tf.cast(maxima, tf.float16), soft_mask)
+    sm_maxima = tf.add(tf.cast(maxima, tf.float32), soft_mask)
 
     # sm_maxima smoothed over large window
     max_pool = pool_func(
@@ -60,9 +60,9 @@ def max_detection(
 
     # not sure if this does anything
     conv_filter = np.ones([1 for _ in range(n_dim + 2)])
-    upsampled = tf.nn.conv3d_transpose(
+    upsampled = conv_transpose(
         max_pool,
-        conv_filter.astype(np.float16),
+        conv_filter.astype(np.float32),
         [1, *sm_dims, 1],
         [1 for _ in range(n_dim)],
         padding="SAME",
@@ -73,5 +73,8 @@ def max_detection(
     reduced_maxima = tf.equal(upsampled, sm_maxima)
     reduced_maxima = tf.logical_and(reduced_maxima, sm_maxima > 1)
 
-    return maxima[0, :, :, :, 0], reduced_maxima[0, :, :, :, 0]
+    if n_dim == 2:
+        return maxima[0, :, :, 0], reduced_maxima[0, :, :, 0]
+    elif n_dim == 3:
+        return maxima[0, :, :, :, 0], reduced_maxima[0, :, :, :, 0]
 
