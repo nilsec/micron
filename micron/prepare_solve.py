@@ -112,7 +112,7 @@ def set_up_environment(base_dir,
     copyfile(os.path.join(graph_setup_dir, "predict_config.ini"), os.path.join(solve_setup_dir, "predict_config.ini"))
     copyfile(os.path.join(graph_setup_dir, "data_config.ini"), os.path.join(solve_setup_dir, "data_config.ini"))
     copyfile(os.path.join(graph_setup_dir, "graph_config.ini"), os.path.join(solve_setup_dir, "graph_config.ini"))
-    copyfile("./solve/solve.py", os.path.join(solve_setup_dir, "solve.py"))
+    copyfile(os.path.join(os.path.dirname(__file__), "solve/solve.py"), os.path.join(solve_setup_dir, "solve.py"))
 
     worker_config = create_worker_config(mount_dirs, singularity, queue)
     solve_config = create_solve_config(solve_number,
