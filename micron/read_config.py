@@ -98,6 +98,8 @@ def read_data_config(data_config):
     cfg_dict["in_offset"] = tuple([int(v) for v in np.array(config.get("Data", "in_offset").split(", "), dtype=int)])
     cfg_dict["in_size"] = tuple([int(v) for v in np.array(config.get("Data", "in_size").split(", "), dtype=int)])
     cfg_dict["out_container"] = config.get("Data", "out_container")
+    cfg_dict["out_dataset"] = config.get("Data", "out_dataset")
+
 
     # Create json container spec for in_data:
     in_container_spec = {"container": cfg_dict["in_container"],

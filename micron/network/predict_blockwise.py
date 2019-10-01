@@ -10,6 +10,7 @@ import pymongo
 import configparser
 from shutil import copyfile
 from micron import read_predict_config, read_worker_config, read_data_config
+from subprocess import check_call
 from funlib.run import run, run_singularity
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ def predict_blockwise(
         in_offset,
         in_size,
         out_container,
+        out_dataset,
         db_name,
         db_host,
         singularity_container,
@@ -162,6 +164,7 @@ def predict_blockwise(
             in_container,
             in_dataset,
             out_container,
+            out_dataset,
             db_host,
             db_name,
             queue,
@@ -189,6 +192,7 @@ def predict_worker(
         in_container,
         in_dataset,
         out_container,
+        out_dataset,
         db_host,
         db_name,
         queue,
@@ -212,6 +216,7 @@ def predict_worker(
         'in_container': in_container,
         'in_dataset': in_dataset,
         'out_container': out_container,
+        'out_dataset': out_dataset,
         'db_host': db_host,
         'db_name': db_name,
         'run_instruction': run_instruction
@@ -243,7 +248,8 @@ def predict_worker(
         logger.warning("Running block **locally**, no queue provided.")
         if singularity_container == "None":
             logger.warning("Running block in current environment, no singularity image provided.")
-            cmd = base_command
+            cmd = [base_command]
+            #cmd = base_command
         else:
             cmd = run_singularity(base_command,
                             singularity_container,
@@ -263,6 +269,7 @@ def predict_worker(
             expand=False)
 
     daisy.call(cmd, log_out=log_out, log_err=log_err)
+    #check_call(cmd, shell=True)
 
     logger.info('Predict worker finished')
 
@@ -272,6 +279,7 @@ def check_block(blocks_predicted, block):
 
 
 if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)
     predict_config = sys.argv[1]
     worker_config = sys.argv[2]
     data_config = sys.argv[3]

@@ -202,8 +202,8 @@ if __name__ == "__main__":
     full_config.update(data_config_dict)
     full_config.update(graph_config_dict)
 
-    full_config["soft_mask_container"] = predict_config_dict["out_container"]
-    full_config["soft_mask_dataset"] = "/volumes/soft_mask"
+    full_config["soft_mask_container"] = data_config_dict["out_container"]
+    full_config["soft_mask_dataset"] = data_config_dict["out_dataset"]
     full_config["roi_offset"] = data_config_dict["in_offset"]
     full_config["roi_size"] = data_config_dict["in_size"]
 

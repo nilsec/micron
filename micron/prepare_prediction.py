@@ -158,6 +158,7 @@ def create_data_config():
                                   str(0) + ", " +\
                                   str(0))
     config.set('Data', 'out_container', str(None))
+    config.set('Data', 'out_dataset', str(None))
     return config
 
 

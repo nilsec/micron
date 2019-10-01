@@ -15,6 +15,7 @@ def predict(
         in_container,
         in_dataset,
         out_container,
+        out_dataset,
         db_host,
         db_name,
         run_instruction,
@@ -71,7 +72,7 @@ def predict(
     pipeline += IntensityScaleShift(soft_mask, 255, 0)
     print("OUT", out_container)
     pipeline += ZarrWrite(dataset_names={
-                                soft_mask: 'volumes/soft_mask'
+                                soft_mask: out_dataset
                                  },
                           output_filename=out_container
                           )
