@@ -124,6 +124,8 @@ def set_up_environment(base_dir,
     with open(os.path.join(solve_setup_dir, "solve_config.ini"), "w+") as f:
         solve_config.write(f)
 
+    return solve_setup_dir
+
 
 def create_solve_config(solve_number,
                         selected_attr,
@@ -152,7 +154,10 @@ def create_solve_config(solve_number,
 
 def create_worker_config(mount_dirs,
                          singularity,
-                         queue):
+                         queue,
+                         num_cpus=5,
+                         num_block_workers=1,
+                         num_cache_workers=5):
 
     config = configparser.ConfigParser()
     config.add_section('Worker')
@@ -160,9 +165,9 @@ def create_worker_config(mount_dirs,
         config.set('Worker', 'singularity_container', str(None))
     else:
         config.set('Worker', 'singularity_container', str(singularity))
-    config.set('Worker', 'num_cpus', str(5))
-    config.set('Worker', 'num_block_workers', str(1))
-    config.set('Worker', 'num_cache_workers', str(5))
+    config.set('Worker', 'num_cpus', str(num_cpus))
+    config.set('Worker', 'num_block_workers', str(num_block_workers))
+    config.set('Worker', 'num_cache_workers', str(num_cache_workers))
     if queue == None or queue == "None" or not queue:
         config.set('Worker', 'queue', str(None))
     else:
