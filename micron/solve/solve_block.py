@@ -43,7 +43,7 @@ def solve_in_block(db_host,
         block = client.acquire_block()
 
         if not block:
-            return
+            return 0
 
         logger.debug("Solving in block %s", block)
 
