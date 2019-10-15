@@ -112,7 +112,7 @@ def set_up_environment(base_dir,
     copyfile(os.path.join(graph_setup_dir, "predict_config.ini"), os.path.join(solve_setup_dir, "predict_config.ini"))
     copyfile(os.path.join(graph_setup_dir, "data_config.ini"), os.path.join(solve_setup_dir, "data_config.ini"))
     copyfile(os.path.join(graph_setup_dir, "graph_config.ini"), os.path.join(solve_setup_dir, "graph_config.ini"))
-    copyfile(os.path.join(os.path.dirname(__file__), "solve/solve.py"), os.path.join(solve_setup_dir, "solve.py"))
+    copyfile(os.path.join(os.path.abspath(os.path.dirname(__file__)), "solve/solve.py"), os.path.join(solve_setup_dir, "solve.py"))
 
     worker_config = create_worker_config(mount_dirs, singularity, queue)
     solve_config = create_solve_config(solve_number,
@@ -142,8 +142,10 @@ def create_solve_config(solve_number,
     config.set('Solve', 'start_edge_prior', str(start_edge_prior))
     config.set('Solve', 'selection_cost', str(selection_cost))
     config.set('Solve', 'context', "400, 400, 400")
-    config.set('Solve', 'daisy_solve', os.path.abspath("./solve/daisy_solve.py"))
-    config.set('Solve', 'solve_block', os.path.abspath("./solve/solve_block.py"))
+    config.set('Solve', 'daisy_solve', os.path.join(os.path.abspath(os.path.dirname(__file__)), 
+                                                    "solve/daisy_solve.py"))
+    config.set('Solve', 'solve_block', os.path.join(os.path.abspath(os.path.dirname(__file__)), 
+                                                    "solve/solve_block.py"))
     config.set('Solve', 'solve_number', str(solve_number))
     config.set('Solve', 'time_limit', str(120))
     config.set('Solve', 'selected_attr', selected_attr)
