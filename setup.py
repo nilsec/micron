@@ -19,6 +19,7 @@ setup(
         'micron.scripts',
         'micron.gp',
         'micron.solve',
+        'micron.post',
             ],
      ext_modules=cythonize([
           Extension('micron.graph.ext.cpp_get_evidence',
