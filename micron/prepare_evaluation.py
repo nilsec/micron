@@ -30,7 +30,16 @@ def set_up_environment(base_dir,
                        predict_number,
                        graph_number,
                        solve_number,
-                       eval_number):
+                       eval_number,
+                       tracing_file=None,
+                       tracing_offset=None,
+                       tracing_size=None,
+                       subsample_factor=None,
+                       max_edges=None,
+                       distance_threshold=None,
+                       optimality_gap=0.0,
+                       time_limit=None,
+                       voxel_size=None):
 
     input_params = locals()
     train_files = {}
@@ -77,7 +86,16 @@ def set_up_environment(base_dir,
                                          singularity=None, 
                                          queue=None)
 
-    eval_config = create_eval_config(eval_number)
+    eval_config = create_eval_config(eval_number,
+                                     tracing_file,
+                                     tracing_offset,
+                                     tracing_size,
+                                     subsample_factor,
+                                     max_edges,
+                                     distance_threshold,
+                                     optimality_gap,
+                                     time_limit,
+                                     voxel_size)
 
     with open(os.path.join(eval_setup_dir, "worker_config.ini"), "w+") as f:
         worker_config.write(f)
@@ -87,21 +105,51 @@ def set_up_environment(base_dir,
     return eval_setup_dir
 
 
-def create_eval_config(eval_number):
+def create_eval_config(eval_number,
+                       tracing_file,
+                       tracing_offset,
+                       tracing_size,
+                       subsample_factor,
+                       max_edges,
+                       distance_threshold,
+                       optimality_gap,
+                       time_limit,
+                       voxel_size):
 
     config = configparser.ConfigParser()
     config.add_section('Evaluate')
-    config.set('Evaluate', 'tracing_file', str(None))
-    config.set('Evaluate', 'tracing_offset', "0, 0, 0")
-    config.set('Evaluate', 'tracing_size', "0, 0, 0")
-    config.set('Evaluate', 'subsample_factor', str(10))
-    config.set('Evaluate', 'distance_threshold', str(120))
-    config.set('Evaluate', 'max_edges', str(5))
-    config.set('Evaluate', 'optimality_gap', str(0.0))
-    config.set('Evaluate', 'time_limit', "300")
+    config.set('Evaluate', 'tracing_file', str(tracing_file))
+    if tracing_offset is None:
+        tracing_offset = [0,0,0]
+    config.set('Evaluate', 'tracing_offset', "{}, {}, {}".format(tracing_offset[0],
+                                                                 tracing_offset[1],
+                                                                 tracing_offset[2]))
+
+    if tracing_size is None:
+        tracing_size = [0,0,0]
+    config.set('Evaluate', 'tracing_size', "{}, {}, {}".format(tracing_size[0],
+                                                               tracing_size[1],
+                                                               tracing_size[2]))
+    if subsample_factor is None:
+        subsample_factor = 10
+    config.set('Evaluate', 'subsample_factor', str(subsample_factor))
+    if distance_threshold is None:
+        distance_threshold = 120
+    config.set('Evaluate', 'distance_threshold', str(distance_threshold))
+    if max_edges is None:
+        max_edges = 5
+    config.set('Evaluate', 'max_edges', str(max_edges))
+    config.set('Evaluate', 'optimality_gap', str(optimality_gap))
+    if time_limit is None:
+        time_limit = 300
+    config.set('Evaluate', 'time_limit', str(time_limit))
     config.set('Evaluate', 'evaluation_pipeline', 
                 os.path.join(os.path.abspath(os.path.dirname(__file__)), "post/evaluation_pipeline.py"))
-    config.set('Evaluate', 'voxel_size', "40, 4, 4")
+    if voxel_size is None:
+        voxel_size = [40, 4, 4]
+    config.set('Evaluate', 'voxel_size', "{}".format(voxel_size[0],
+                                                     voxel_size[1],
+                                                     voxel_size[2]))
     config.set('Evaluate', 'eval_number', str(eval_number))
 
     return config
