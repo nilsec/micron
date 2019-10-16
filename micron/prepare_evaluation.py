@@ -39,7 +39,13 @@ def set_up_environment(base_dir,
                        distance_threshold=None,
                        optimality_gap=0.0,
                        time_limit=None,
-                       voxel_size=None):
+                       voxel_size=None,
+                       mount_dirs=None,
+                       singularity=None,
+                       queue=None,
+                       num_cpus=5,
+                       num_block_workers=1,
+                       num_cache_workers=5):
 
     input_params = locals()
     train_files = {}
@@ -82,9 +88,12 @@ def set_up_environment(base_dir,
 
     copyfile(os.path.join(os.path.abspath(os.path.dirname(__file__)), "post/evaluate.py"), os.path.join(eval_setup_dir, "evaluate.py"))
 
-    worker_config = create_worker_config(mount_dirs=None, 
-                                         singularity=None, 
-                                         queue=None)
+    worker_config = create_worker_config(mount_dirs,
+                                         singularity,
+                                         queue,
+                                         num_cpus,
+                                         num_block_workers,
+                                         num_cache_workers)
 
     eval_config = create_eval_config(eval_number,
                                      tracing_file,
@@ -147,7 +156,7 @@ def create_eval_config(eval_number,
                 os.path.join(os.path.abspath(os.path.dirname(__file__)), "post/evaluation_pipeline.py"))
     if voxel_size is None:
         voxel_size = [40, 4, 4]
-    config.set('Evaluate', 'voxel_size', "{}".format(voxel_size[0],
+    config.set('Evaluate', 'voxel_size', "{}, {}, {}".format(voxel_size[0],
                                                      voxel_size[1],
                                                      voxel_size[2]))
     config.set('Evaluate', 'eval_number', str(eval_number))
