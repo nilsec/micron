@@ -17,6 +17,7 @@ mkdir -p ${SINGULARITY_ROOTFS}/src/lsd
 mkdir -p ${SINGULARITY_ROOTFS}/src/funlib/math
 mkdir -p ${SINGULARITY_ROOTFS}/src/micron
 mkdir -p ${SINGULARITY_ROOTFS}/src/funlib/run
+mkdir -p ${SINGULARITY_ROOTFS}/src/comatch
 
 %files
 micron /src/micron/micron
@@ -210,6 +211,18 @@ pip install -r requirements.txt
 python setup.py build_ext --inplace
 PYTHONPATH=${LSD_ROOT}:$PYTHONPATH
 
+# install comatch
+COMATCH_ROOT=/src/comatch
+COMATCH_REPOSITORY=https://github.com/funkey/comatch.git
+# Hungarian branch
+COMATCH_REVISION=dc0ca77e93bd48ef30dbfe63a444b50a684928dd
+
+cd ${COMATCH_ROOT}
+git clone ${COMATCH_REPOSITORY} . && \
+git checkout ${COMATCH_REVISION}
+pip install .
+PYTHONPATH=${COMATCH_ROOT}:$PYTHONPATH
+
 # Install micron
 cd /src/micron
 python setup.py build_ext --inplace
@@ -237,6 +250,8 @@ export PYTHONPATH=${FUNLIB_MATH_ROOT}:$PYTHONPATH
 export PYTHONPATH=/src/lsd:$PYTHONPATH
 export PATH=/miniconda/bin:${PATH}
 export PYTHONPATH=/src/micron:$PYTHONPATH
+export PYTHONPATH=/src/comatch:$PYTHONPATH
+
 
 #Gurobi environment variables - adapt if needed:
 export GUROBI_HOME=/misc/local/gurobi-8.0.1
