@@ -39,10 +39,7 @@ def evaluate(matching_graph,
     return node_errors, topological_errors
 
 
-def construct_matching_graph(base_dir,
-                             experiment,
-                             train_number,
-                             predict_number,
+def construct_matching_graph(setup_directory,
                              graph_number,
                              solve_number,
                              tracing_file,
@@ -55,10 +52,6 @@ def construct_matching_graph(base_dir,
     voxel_size = np.array(voxel_size)
 
     edge_collection = "edges_g{}".format(graph_number)
-    setup_directory = os.path.join(os.path.join(os.path.abspath(base_dir), experiment), "04_solve/setup_t{}_p{}_g{}_s{}".format(train_number,
-                                                                                                                                predict_number,
-                                                                                                                                graph_number,
-                                                                                                                                solve_number))
 
     if not os.path.exists(setup_directory):
         raise ValueError("No setup directory at {}".format(setup_directory))
@@ -592,12 +585,6 @@ class MatchingGraph(nx.Graph):
         tags = set()
         for v in self.nodes(data=True):
             tags.add(v[1]["match"])
-
-        print("tags", tags)
-
-
-        print("tps", len([v for v in nodes if v[1]["match"] == "tp"]))
-        print("nodes", len([v for v in nodes]))
 
         merges = 0
         splits = 0

@@ -3,6 +3,25 @@ import os
 import numpy as np
 import json
 
+def read_eval_config(eval_config):
+    config = configparser.ConfigParser()
+    config.read(eval_config)
+
+    cfg_dict = {}
+    cfg_dict["tracing_file"] = config.get("Evaluate", "tracing_file")
+    cfg_dict["tracing_offset"] = tuple([int(v) for v in config.get("Evaluate", "tracing_offset").split(", ")])
+    cfg_dict["tracing_size"] = tuple([int(v) for v in config.get("Evaluate", "tracing_size").split(", ")])
+    cfg_dict["subsample_factor"] = config.getint("Evaluate", "subsample_factor")
+    cfg_dict["distance_threshold"] = config.getint("Evaluate", "distance_threshold")
+    cfg_dict["max_edges"] = config.getint("Evaluate", "max_edges")
+    cfg_dict["optimality_gap"] = float(config.get("Evaluate", "optimality_gap"))
+    cfg_dict["time_limit"] = config.getint("Evaluate", "time_limit")
+    cfg_dict["evaluation_pipeline"] = config.get("Evaluate", "evaluation_pipeline")
+    cfg_dict["voxel_size"] = tuple([int(v) for v in config.get("Evaluate", "voxel_size").split(", ")])
+    cfg_dict["eval_number"] = config.getint("Evaluate", "eval_number")
+
+    return cfg_dict
+
 def read_train_config(train_config):
     config = configparser.ConfigParser()
     config.read(train_config)

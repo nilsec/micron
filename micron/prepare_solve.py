@@ -52,8 +52,6 @@ def set_up_environment(base_dir,
 
     graph_setup_dir = os.path.join(os.path.join(base_dir, experiment), "03_graph/setup_t{}_p{}_g{}".format(train_number, predict_number, graph_number))
     solve_setup_dir = os.path.join(os.path.join(base_dir, experiment), "04_solve/setup_t{}_p{}_g{}_s{}".format(train_number, predict_number, graph_number,solve_number))
-    predict_setup_dir = os.path.join(os.path.join(base_dir, experiment), "02_predict/train_{}/predict_{}".format(train_number, predict_number))
-    train_setup_dir = os.path.join(os.path.join(base_dir, experiment), "01_train/train_{}".format(train_number))
     
     predict_cfg_dict = read_predict_config(os.path.join(graph_setup_dir, "predict_config.ini"))
     data_cfg_dict = read_data_config(os.path.join(graph_setup_dir, "data_config.ini"))
