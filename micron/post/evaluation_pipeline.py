@@ -27,7 +27,12 @@ def evaluation_pipeline(db_host,
                         **kwargs):
 
 
-    setup_directory = os.path.abspath(".")
+    setup_directory = os.path.join(base_dir, experiment)
+    setup_directory = os.path.join(setup_directory, "05_eval/setup_t{}_p{}_g{}_s{}_e{}".format(train_number,
+                                                                                               predict_number,
+                                                                                               graph_number,
+                                                                                               solve_number,
+                                                                                               eval_number))
 
     matching_graph, gt_graph, rec_graph, gt_component_map, rec_component_map =\
         construct_matching_graph(setup_directory,
