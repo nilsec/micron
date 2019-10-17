@@ -12,6 +12,7 @@ from micron import read_data_config, read_solve_config, read_predict_config
 from micron.post.nml_io import parse_nml
 from comatch import match_components
 
+
 def evaluate(matching_graph,
              max_edges=1,
              optimality_gap=0.0,
@@ -82,6 +83,13 @@ def construct_matching_graph(setup_directory,
                           solve_number,
                           edge_collection)
 
+    #Validate Graph:
+    for v in rec_graph.nodes():
+        nbs = [v for v in rec_graph.neighbors(v)]
+        if len(nbs)>2:
+            raise ValueError("Branching in graph, abort.")
+
+
     # Label connected components:
     rec_graph = label_connected_components(rec_graph,
                                            solve_number)
@@ -101,6 +109,10 @@ def construct_matching_graph(setup_directory,
     n = 0
     for component_id in component_ids:
         start_vertex_id, end_vertex_id = get_start_end_vertex_id(rec_graph, solve_number, component_id)
+        if start_vertex_id == end_vertex_id == None:
+            # Loop
+            continue
+
         interpolated_cc = interpolate_cc(rec_graph, start_vertex_id, end_vertex_id, voxel_size)
 
         if interpolated_cc:
@@ -141,6 +153,9 @@ def construct_matching_graph(setup_directory,
 
     for component_id in component_ids:
         start_vertex_id, end_vertex_id = get_start_end_vertex_id(gt_graph, solve_number, component_id)
+        if start_vertex_id == end_vertex_id == None:
+            # Loop
+            continue
         interpolated_cc = interpolate_cc(gt_graph, start_vertex_id, end_vertex_id, voxel_size)
 
         if interpolated_cc:
@@ -317,10 +332,14 @@ def get_start_end_vertex_id(nx_graph, solve_number, component_number):
 
     if len(nodes_in_cc) > 1:
         start_end_vertex = [node_id for node_id in nodes_in_cc if len([v for v in nx_graph.neighbors(node_id)]) == 1]
-        assert(len(start_end_vertex) == 2)
-
-        start = start_end_vertex[0]
-        end = start_end_vertex[1]
+        if len(start_end_vertex) == 0:
+            # Loop - filter out
+            start = None
+            end = None
+        else:
+            assert(len(start_end_vertex) == 2)
+            start = start_end_vertex[0]
+            end = start_end_vertex[1]
 
     else:
         start = nodes_in_cc[0]
