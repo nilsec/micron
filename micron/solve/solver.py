@@ -1,11 +1,18 @@
 import logging
 import numpy as np
+import sys
 
 import pylp
 import daisy
 from daisy.persistence import MongoDbGraphProvider
 
 logger = logging.getLogger(__name__)
+out_hdlr = logging.StreamHandler(sys.stdout)
+out_hdlr.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+out_hdlr.setLevel(logging.INFO)
+logger.addHandler(out_hdlr)
+logger.setLevel(logging.INFO)
+
 START_EDGE = (-1, -1, {})
 pylp.set_log_level(pylp.LogLevel.Debug)
 

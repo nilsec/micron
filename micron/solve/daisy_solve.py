@@ -129,6 +129,13 @@ def start_worker(predict_config,
     logger.info('Solve worker finished')
 
 if __name__ == "__main__":
+    logger = logging.getLogger(__name__)
+    out_hdlr = logging.StreamHandler(sys.stdout)
+    out_hdlr.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+    out_hdlr.setLevel(logging.INFO)
+    logger.addHandler(out_hdlr)
+    logger.setLevel(logging.INFO)
+
     predict_config = sys.argv[1]
     worker_config = sys.argv[2]
     data_config = sys.argv[3]

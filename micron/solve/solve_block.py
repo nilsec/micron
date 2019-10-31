@@ -27,7 +27,7 @@ def solve_in_block(db_host,
                    solved_attr="solved",
                    **kwargs):
 
-    print("Solve in block")
+    logger.info("Solve in block")
 
     graph_provider = MongoDbGraphProvider(
         db_name,
@@ -39,7 +39,7 @@ def solve_in_block(db_host,
     client = daisy.Client()
 
     while True:
-        print("Acquire block")
+        logger.info("Acquire block")
         block = client.acquire_block()
 
         if not block:
@@ -67,7 +67,8 @@ def solve_in_block(db_host,
             client.release_block(block, 0)
             continue
 
-        print("solve")
+        logger.info("Solve...")
+        start_time = time.time()
         solver = Solver(graph, 
                         evidence_factor, 
                         comb_angle_factor, 
@@ -78,7 +79,11 @@ def solve_in_block(db_host,
                         solved_attr)
 
         solver.initialize()
+        logger.info("Initializing solver took %s seconds" % (time.time() - start_time))
+
+        start_time = time.time()
         solver.solve()
+        logger.info("Solving took %s seconds" % (time.time() - start_time))
 
         start_time = time.time()
         graph.update_edge_attrs(
@@ -95,10 +100,10 @@ def solve_in_block(db_host,
                        num_edges,
                        time.time() - start_time))
 
-        print("Write done")
+        logger.info("Write done")
         write_done(block, 'solve_s{}'.format(solve_number), db_name, db_host)
 
-        print("Release block")
+        logger.info("Release block")
         client.release_block(block, 0)
 
 
@@ -106,6 +111,13 @@ def solve_in_block(db_host,
 
 
 if __name__ == "__main__":
+    logger = logging.getLogger(__name__)
+    out_hdlr = logging.StreamHandler(sys.stdout)
+    out_hdlr.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+    out_hdlr.setLevel(logging.INFO)
+    logger.addHandler(out_hdlr)
+    logger.setLevel(logging.INFO)
+
     predict_config = sys.argv[1]
     worker_config = sys.argv[2]
     data_config = sys.argv[3]
