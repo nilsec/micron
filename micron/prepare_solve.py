@@ -131,7 +131,8 @@ def create_solve_config(solve_number,
                         evidence_factor=12,
                         comb_angle_factor=14,
                         start_edge_prior=180,
-                        selection_cost=-80):
+                        selection_cost=-80,
+                        time_limit=120):
 
     config = configparser.ConfigParser()
     config.add_section('Solve')
@@ -145,7 +146,7 @@ def create_solve_config(solve_number,
     config.set('Solve', 'solve_block', os.path.join(os.path.abspath(os.path.dirname(__file__)), 
                                                     "solve/solve_block.py"))
     config.set('Solve', 'solve_number', str(solve_number))
-    config.set('Solve', 'time_limit', str(120))
+    config.set('Solve', 'time_limit', str(time_limit))
     config.set('Solve', 'selected_attr', selected_attr)
     config.set('Solve', 'solved_attr', solved_attr)
     
