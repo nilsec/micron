@@ -155,7 +155,7 @@ def extract_edges_in_block(
     soft_mask_array_data = soft_mask_array.to_ndarray(roi=soft_mask_roi).astype(np.float64)
 
     if evidence_threshold is not None:
-        soft_mask_array_data = (soft_mask_array_data >= evidence_threshold).astype(np.float64)
+        soft_mask_array_data = (soft_mask_array_data >= evidence_threshold).astype(np.float64) * 255
 
     offset = np.array(np.array(soft_mask_roi.get_offset())/voxel_size, dtype=np.uint64)
     evidence_start = time.time()
