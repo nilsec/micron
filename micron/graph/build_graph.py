@@ -40,6 +40,7 @@ def extract_edges(
         block_size,
         num_block_workers,
         graph_number,
+        evidence_threshold=None,
         **kwargs):
 
     # Define Rois:
@@ -75,6 +76,7 @@ def extract_edges(
             soft_mask_container,
             soft_mask_dataset,
             distance_threshold,
+            evidence_threshold,
             graph_number,
             b),
         num_workers=num_block_workers,
@@ -89,6 +91,7 @@ def extract_edges_in_block(
         soft_mask_container,
         soft_mask_dataset,
         distance_threshold,
+        evidence_threshold,
         graph_number,
         block):
 
@@ -150,6 +153,9 @@ def extract_edges_in_block(
     voxel_size = np.array(soft_mask_array.voxel_size, dtype=np.uint32)
     soft_mask_roi = block.read_roi.snap_to_grid(voxel_size=voxel_size).intersect(soft_mask_array.roi)
     soft_mask_array_data = soft_mask_array.to_ndarray(roi=soft_mask_roi).astype(np.float64)
+
+    if evidence_threshold is not None:
+        soft_mask_array_data = (soft_mask_array_data >= evidence_threshold).astype(np.float64)
 
     offset = np.array(np.array(soft_mask_roi.get_offset())/voxel_size, dtype=np.uint64)
     evidence_start = time.time()

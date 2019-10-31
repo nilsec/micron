@@ -91,6 +91,7 @@ def create_graph_config(graph_number):
     config.set('Graph', 'distance_threshold', str(0)) 
     config.set('Graph', 'block_size', "0, 0, 0")
     config.set('Graph', 'build_graph', os.path.abspath('./graph/build_graph.py'))
+    config.set('Graph', 'evidence_threshold', str(None))
     return config
 
 def create_worker_config(mount_dirs,

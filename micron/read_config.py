@@ -42,6 +42,16 @@ def read_graph_config(graph_config):
     cfg_dict["distance_threshold"] = int(config.get("Graph", "distance_threshold"))
     cfg_dict["block_size"] = tuple([int(v) for v in np.array(config.get("Graph", "block_size").split(", "), dtype=int)])
     cfg_dict["build_graph"] = config.get("Graph", "build_graph")
+    try:
+        tmp = config.get("Graph", "evidence_threshold")
+        if tmp == "None":
+            tmp = None
+        else:
+            tmp = float(tmp)
+        cfg_dict["evidence_threshold"] = tmp
+    except:
+        pass
+
     return cfg_dict
 
 def read_solve_config(solve_config):
