@@ -156,6 +156,7 @@ def construct_matching_graph(setup_directory,
         if start_vertex_id == end_vertex_id == None:
             # Loop
             continue
+
         interpolated_cc = interpolate_cc(gt_graph, start_vertex_id, end_vertex_id, voxel_size)
 
         if interpolated_cc:
@@ -277,15 +278,15 @@ def interpolate_on_grid(z0, y0, x0, z1, y1, x1, voxel_size):
     start = np.array([z0, y0, x0], dtype=float)
     end = np.array([z1, y1, x1], dtype=float)
 
-    if not np.any(start - end):
-        raise ValueError("Start and end point must differ in at least one dimension")
-
     voxel_size = np.array(voxel_size)
     if np.any(start % voxel_size) or np.any(end % voxel_size):
         print(start%voxel_size, end%voxel_size)
         raise ValueError("Start end end position must be multiples of voxel size")
 
     line = [dda_round(start / voxel_size)]
+
+    if not np.any(start - end):
+        return line
 
     max_direction, max_length = max(enumerate(abs(end - start)),
                                               key=operator.itemgetter(1))
@@ -364,7 +365,6 @@ def interpolate_cc(nx_graph, start_vertex_id, end_vertex_id, voxel_size):
             x_next = nx_graph.nodes()[next_]["x"]
             y_next = nx_graph.nodes()[next_]["y"]
             z_next = nx_graph.nodes()[next_]["z"]
-
 
             edge_line = interpolate_on_grid(z_current, y_current, x_current, 
                                             z_next, y_next, x_next, voxel_size)
