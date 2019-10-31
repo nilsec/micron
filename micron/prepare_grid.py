@@ -20,7 +20,8 @@ def prepare_grid(base_dir,
                  num_block_workers,
                  queue="normal",
                  num_cache_workers="1",
-                 min_solve_number=0):
+                 min_solve_number=0,
+                 time_limit=120):
 
     grid = deque(dict(zip(grid_solve_parameters, x))\
                  for x in itertools.product(*grid_solve_parameters.values()))
@@ -46,6 +47,7 @@ def prepare_grid(base_dir,
         params["solve_number"] = solve_number
         params["selected_attr"] = "selected_{}".format(solve_number)
         params["solved_attr"] = "solved_{}".format(solve_number)
+        params["time_limit"] = time_limit
         grid_solve_config = create_solve_config(**params)
         with open(os.path.join(solve_setup_dir, "solve_config.ini"), "w+") as f:
             grid_solve_config.write(f)
