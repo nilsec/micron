@@ -341,6 +341,7 @@ class Solver(object):
 
 
     def get_cost(self, t):
+        epsilon = 10**(-6)
         e_in_t = self.t_to_e[t]
         e_data_in_t = [self.graph.get_edge_data(e[0], e[1]) for e in e_in_t]
         assert(len(e_data_in_t) == 2)
@@ -353,12 +354,12 @@ class Solver(object):
             else:
                 e_data_in_t.remove(None)
                 assert(len(e_data_in_t) == 1)
-                edge_cost = self.evidence_factor * e_data_in_t[0]["evidence"] + 2.0 * self.start_edge_prior
+                edge_cost = self.evidence_factor * 1./(e_data_in_t[0]["evidence"] + epsilon) + 2.0 * self.start_edge_prior
                 comb_edge_cost = 0.0
 
         else:
             # Edge Cost:
-            e_evidence_in_t = [e["evidence"] for e in e_data_in_t]
+            e_evidence_in_t = [1./(e["evidence"] + epsilon) for e in e_data_in_t]
             edge_cost = np.sum(e_evidence_in_t) * self.evidence_factor
 
             # Edge Combination cost:
