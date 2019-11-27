@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 
-def max_detection(soft_mask, window_size, threshold):
+def max_detection(soft_mask, window_size, threshold, double_suppression_size=3, add_noise=False):
     data_format = "NDHWC"
 
     w_depth = window_size[1]
@@ -13,6 +13,12 @@ def max_detection(soft_mask, window_size, threshold):
     sm_depth = sm_shape[1]
     sm_height = sm_shape[2]
     sm_width = sm_shape[3]
+
+    if add_noise:
+        noise = tf.random.uniform(sm_shape, minval=-0.001, maxval=0.)
+        soft_mask += noise
+        #soft_mask += tf.random.uniform(sm_shape, minval=-0.001, maxval=0.)
+        #soft_mask /= tf.reduce_max(soft_mask)
 
     max_pool = tf.nn.max_pool3d(soft_mask, window_size, window_size, padding="SAME", data_format=data_format)
 
@@ -30,15 +36,16 @@ def max_detection(soft_mask, window_size, threshold):
 
     
     maxima = tf.equal(upsampled, soft_mask)
-    maxima = tf.logical_and(maxima, soft_mask>=threshold)
+    maxima = tf.logical_and(maxima, soft_mask>threshold)
 
     # Fix doubles
     # Check the necessary window size and adapt for isotropic vs unisotropic nms:
     nms_dims = np.array(window_size) != 1
-    double_suppresion_window = [3**(dim) for dim in nms_dims]
+    double_suppresion_window = [double_suppression_size**(dim) for dim in nms_dims]
 
     sm_maxima = tf.add(tf.cast(maxima, tf.float32),soft_mask)
     max_pool = tf.nn.max_pool3d(sm_maxima, double_suppresion_window, [1,1,1,1,1], padding="SAME", data_format=data_format)
+    """
     conv_filter = np.ones([1,1,1,1,1])
     upsampled = tf.nn.conv3d_transpose(
                             max_pool,
@@ -49,8 +56,8 @@ def max_detection(soft_mask, window_size, threshold):
                             data_format=data_format,
                             name="nms_conv_1"
                         )
-
-    reduced_maxima = tf.equal(upsampled, sm_maxima)
+    """
+    reduced_maxima = tf.equal(max_pool, sm_maxima)
     reduced_maxima = tf.logical_and(reduced_maxima, sm_maxima>1)
 
     return maxima[0,:,:,:,0], reduced_maxima[0,:,:,:,0]
