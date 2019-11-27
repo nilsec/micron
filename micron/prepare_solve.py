@@ -80,15 +80,15 @@ def set_up_environment(base_dir,
 
     if reset:
         if __name__ == "__main__":
-            if click.confirm('Are you sure you want to reset solve and selected status in {}?'.format(db_name), default=False):
+            if click.confirm('Are you sure you want to reset solve and selected status in {}_solve_s{}?'.format(db_name, solve_number), default=False):
                 reset_solve(db_name, db_host, edge_collection, node_collection, selected_attr, solved_attr)
-                reset_step("solve_{}".format(solve_number), db_name, db_host)
+                reset_step("solve_s{}".format(solve_number), db_name, db_host)
 
             else:
                 print("Abort reset")
         else:
             reset_solve(db_name, db_host, edge_collection, node_collection, selected_attr, solved_attr)
-            reset_step("solve_{}".format(solve_number), db_name, db_host)
+            reset_step("solve_s{}".format(solve_number), db_name, db_host)
 
     if not os.path.exists(graph_setup_dir):
         raise ValueError("No graph at {}".format(graph_setup_dir))
