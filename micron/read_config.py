@@ -48,8 +48,10 @@ def read_graph_config(graph_config):
             tmp = None
         else:
             tmp = float(tmp)
+
         cfg_dict["evidence_threshold"] = tmp
     except:
+        cfg_dict["evidence_threshold"] = None
         pass
 
     return cfg_dict
