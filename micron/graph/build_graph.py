@@ -152,7 +152,20 @@ def extract_edges_in_block(
 
     voxel_size = np.array(soft_mask_array.voxel_size, dtype=np.uint32)
     soft_mask_roi = block.read_roi.snap_to_grid(voxel_size=voxel_size).intersect(soft_mask_array.roi)
-    soft_mask_array_data = soft_mask_array.to_ndarray(roi=soft_mask_roi).astype(np.float64)
+    soft_mask_array_data = soft_mask_array.to_ndarray(roi=soft_mask_roi) 
+
+    sm_dtype = soft_mask_array_data.dtype
+    if sm_dtype == np.uint8: # standard pipeline pm 0-255
+        pass
+    elif sm_dtype == np.float32 or sm_dtype == np.float64:
+        if not (soft_mask_array_data.min() >= 0 and soft_mask_array_data.max() <= 1):
+            raise ValueError("Provided soft_mask has dtype float but not in range [0,1], abort")
+        else:
+            soft_mask_array_data *= 255
+    else:
+        raise ValueError("Soft mask dtype {} not understood".format(sm_dtype))
+
+    soft_mask_array_data = soft_mask_array_data.astype(np.float64)
 
     if evidence_threshold is not None:
         soft_mask_array_data = (soft_mask_array_data >= evidence_threshold).astype(np.float64) * 255
