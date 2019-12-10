@@ -354,12 +354,12 @@ class Solver(object):
             else:
                 e_data_in_t.remove(None)
                 assert(len(e_data_in_t) == 1)
-                edge_cost = self.evidence_factor * 1./(e_data_in_t[0]["evidence"] + epsilon) + 2.0 * self.start_edge_prior
+                edge_cost = self.evidence_factor * e_data_in_t[0]["evidence"] + 2.0 * self.start_edge_prior
                 comb_edge_cost = 0.0
 
         else:
             # Edge Cost:
-            e_evidence_in_t = [1./(e["evidence"] + epsilon) for e in e_data_in_t]
+            e_evidence_in_t = [e["evidence"] for e in e_data_in_t]
             edge_cost = np.sum(e_evidence_in_t) * self.evidence_factor
 
             # Edge Combination cost:
