@@ -109,8 +109,7 @@ def start_worker(predict_config,
                                   singularity_container,
                                   mount_dirs=mount_dirs,
                                   execute=False,
-                                  expand=False,
-                                  batch=True)
+                                  expand=False)
     else:
         logger.info("Running block on queue {} and container {}".format(queue,
                                                                         singularity_container))
