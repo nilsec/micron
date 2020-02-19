@@ -95,7 +95,7 @@ def get_graph(db_host,
     
     graph = MongoDbGraphProvider(db_name, db_host, directed=False, position_attribute=['z', 'y', 'x'], edges_collection=edge_collection)
     roi = daisy.Roi(roi_offset, roi_size)
-    nodes, edges = graph.read_blockwise(roi, block_size=daisy.Coordinate((10000,10000,10000)), num_workers=1)
+    nodes, edges = graph.read_blockwise(roi, block_size=daisy.Coordinate((10000,10000,10000)), num_workers=40)
 
     if len(edges["u"]) != 0:
         if selected_only:
