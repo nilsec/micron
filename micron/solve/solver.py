@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import sys
+import time
 
 import pylp
 import daisy
@@ -56,9 +57,18 @@ class Solver(object):
 
 
     def initialize(self):
+        logger.info("Creating Indicators...")
+        start_time = time.time()
         self.__create_indicators()
-        self.__get_continuation_constraints()
+        logger.info("...took %s seconds" % (time.time() - start_time))
 
+        logger.info("Getting continuation constraints...")
+        start_time = time.time()
+        self.__get_continuation_constraints()
+        logger.info("...took %s seconds" % (time.time() - start_time))
+
+        logger.info("Setting objective...")
+        start_time = time.time()
         self.backend = pylp.create_linear_solver(pylp.Preference.Gurobi)
         self.backend.initialize(self.n_triplets, pylp.VariableType.Binary)
         self.backend.set_num_threads(1)
@@ -76,7 +86,10 @@ class Solver(object):
                 self.constraints.add(constraint)
 
         self.backend.set_objective(self.objective)
+        logger.info("...took %s seconds" % (time.time() - start_time))
 
+        logger.info("Setting center conflicts...")
+        start_time = time.time()
         for conflict in self.t_center_conflicts:
             constraint = pylp.LinearConstraint()
 
@@ -90,7 +103,10 @@ class Solver(object):
                 constraint.set_relation(pylp.Relation.LessEqual)
                 constraint.set_value(1)
                 self.constraints.add(constraint)
+        logger.info("...took %s seconds" % (time.time() - start_time))
 
+        logger.info("Setting continuation constraints...")
+        start_time = time.time()
         for continuation_constraint in self.continuation_constraints:
             t_l = continuation_constraint["t_l"]
             t_r = continuation_constraint["t_r"]
@@ -106,7 +122,11 @@ class Solver(object):
                 constraint.set_relation(pylp.Relation.Equal)
                 constraint.set_value(0)
                 self.constraints.add(constraint)
+        logger.info("...took %s seconds" % (time.time() - start_time))
 
+
+        logger.info("Setting must pick one constraints...")
+        start_time = time.time()
         for must_pick_one in self.e_selected + self.v_selected:
             constraint = pylp.LinearConstraint()
             if must_pick_one:
@@ -118,7 +138,7 @@ class Solver(object):
                 self.constraints.add(constraint)
 
         self.backend.set_constraints(self.constraints)
-
+        logger.info("...took %s seconds" % (time.time() - start_time))
 
     def solve(self):
         logger.info("solve with: " + str(len(self.constraints)) + " constraints.")
