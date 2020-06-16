@@ -47,7 +47,7 @@ def solve_in_block(db_host,
 
         logger.debug("Solving in block %s", block)
 
-        if check_function(block, 'solve_s{}'.format(solve_number), db_name, db_host):
+        if check_function(block, 'solve_s{}_g{}'.format(solve_number, graph_number), db_name, db_host):
             client.release_block(block, 0)
             continue
 
@@ -63,7 +63,7 @@ def solve_in_block(db_host,
         if num_edges == 0:
             logger.info("No edges in roi %s. Skipping"
                         % block.read_roi)
-            write_done(block, 'solve_s{}'.format(solve_number), db_name, db_host)
+            write_done(block, 'solve_s{}_g{}'.format(solve_number, graph_number), db_name, db_host)
             client.release_block(block, 0)
             continue
 
