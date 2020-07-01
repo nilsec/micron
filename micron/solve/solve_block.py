@@ -101,7 +101,7 @@ def solve_in_block(db_host,
                        time.time() - start_time))
 
         logger.info("Write done")
-        write_done(block, 'solve_s{}'.format(solve_number), db_name, db_host)
+        write_done(block, 'solve_s{}_g{}'.format(solve_number, graph_number), db_name, db_host)
 
         logger.info("Release block")
         client.release_block(block, 0)
