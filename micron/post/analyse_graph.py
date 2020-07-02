@@ -40,9 +40,12 @@ def evaluate(matching_graph,
     return node_errors, topological_errors
 
 
-def construct_matching_graph(setup_directory,
+def construct_matching_graph(db_host,
+                             db_name,
                              graph_number,
                              solve_number,
+                             solve_offset,
+                             solve_size,
                              tracing_file,
                              tracing_offset,
                              tracing_size,
@@ -54,17 +57,8 @@ def construct_matching_graph(setup_directory,
 
     edge_collection = "edges_g{}".format(graph_number)
 
-    if not os.path.exists(setup_directory):
-        raise ValueError("No setup directory at {}".format(setup_directory))
-
-
-    data_config = read_data_config(os.path.join(setup_directory, "data_config.ini"))
-    solve_config = read_solve_config(os.path.join(setup_directory, "solve_config.ini"))
-    predict_config = read_predict_config(os.path.join(setup_directory, "predict_config.ini"))
-
-    solve_roi = daisy.Roi(data_config["in_offset"], data_config["in_size"])
+    solve_roi = daisy.Roi(solve_offset, solve_size)
     tracing_roi = daisy.Roi(tracing_offset, tracing_size)
-
   
     if not solve_roi.intersects(tracing_roi):
         raise ValueError("No overlap between solve region and tracing")
@@ -74,10 +68,9 @@ def construct_matching_graph(setup_directory,
     if not shared_roi.get_shape() == tracing_roi.get_shape():
         raise Warning("Solve roi only partially overlaps with tracing")
 
-
     # Get Graph:    
-    rec_graph = get_graph(predict_config["db_host"], 
-                          predict_config["db_name"],
+    rec_graph = get_graph(db_host, 
+                          db_name,
                           shared_roi.get_offset(),
                           shared_roi.get_shape(),
                           solve_number,
@@ -88,7 +81,6 @@ def construct_matching_graph(setup_directory,
         nbs = [v for v in rec_graph.neighbors(v)]
         if len(nbs)>2:
             raise ValueError("Branching in graph, abort.")
-
 
     # Label connected components:
     rec_graph = label_connected_components(rec_graph,
@@ -113,7 +105,8 @@ def construct_matching_graph(setup_directory,
             # Loop
             continue
 
-        interpolated_cc = interpolate_cc(rec_graph, start_vertex_id, end_vertex_id, voxel_size)
+        interpolated_cc = interpolate_cc(rec_graph, start_vertex_id, 
+                                         end_vertex_id, voxel_size)
 
         if interpolated_cc:
             rec_lines.append(interpolated_cc)
@@ -181,7 +174,6 @@ def construct_matching_graph(setup_directory,
                                    voxel_size)
 
     return matching_graph, gt_graph, rec_graph, gt_component_map, rec_component_map
-
 
 
 def get_graph(db_host,
