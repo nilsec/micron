@@ -1,5 +1,5 @@
 # Library for automatic tracking of microtubules in large scale EM datasets
-
+![](calyx.gif)
 
 ## Prerequisites
 
