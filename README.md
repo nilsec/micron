@@ -1,5 +1,6 @@
 # Library for automatic tracking of microtubules in large scale EM datasets
 ![](calyx.gif)
+
 Rendering of automatically reconstructed microtubules in selected, automatically segmented neurons in the Calyx, a 76 x 52 x 65 micron region of the Drosophila Melanogaster brain. Microtubules of the same color belong to the same neuron.
 
 ## Prerequisites
