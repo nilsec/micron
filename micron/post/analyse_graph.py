@@ -24,18 +24,39 @@ def evaluate(matching_graph,
     
     nodes_gt, nodes_rec, labels_gt, labels_rec, edges_gt_rec, edge_conflicts = matching_graph.export()
 
-    label_matches, node_matches, num_splits, num_merges, num_fps, num_fns = match_components(nodes_gt, nodes_rec,
-                                                                                             edges_gt_rec, labels_gt, labels_rec,
-                                                                                             edge_conflicts=edge_conflicts,
-                                                                                             max_edges=max_edges,
-                                                                                             optimality_gap=optimality_gap,
-                                                                                             time_limit=time_limit)
+    if nodes_gt and nodes_rec:
+        label_matches, node_matches, num_splits, num_merges, num_fps, num_fns = match_components(nodes_gt, nodes_rec,
+                                                                                                 edges_gt_rec, labels_gt, labels_rec,
+                                                                                                 edge_conflicts=edge_conflicts,
+                                                                                                 max_edges=max_edges,
+                                                                                                 optimality_gap=optimality_gap,
+                                                                                                 time_limit=time_limit)
 
-    topological_errors = {"n_gt": n_gts, "n_rec": n_recs, "splits": num_splits, "merges": num_merges, "fps": num_fps, "fns": num_fns}
+        topological_errors = {"n_gt": len(labels_gt), "n_rec": len(labels_rec), "splits": num_splits, "merges": num_merges, "fps": num_fps, "fns": num_fns}
+        matching_graph.import_node_matches(node_matches)
+        node_errors = matching_graph.get_stats()
 
-    matching_graph.import_node_matches(node_matches)
+    else:
+        if not nodes_gt:
+            fps = matching_graph.rec_ccs
+            fns = 0
+            nodes_fps = len(nodes_rec)
+            nodes_fns = 0
+        if not nodes_rec:
+            fps = 0
+            fns = matching_graph.gt_ccs
+            nodes_fps = 0
+            nodes_fns = len(nodes_gt)
 
-    node_errors = matching_graph.get_stats()
+        topological_errors = {"n_gt": matching_graph.gt_ccs, "n_rec": matching_graph.rec_ccs, "splits": 0, "merges": 0, "fps": fps, "fns": fns}
+        node_errors = {"vertices": 0,
+                       "edges": 0,
+                       "tps_rec": 0,
+                       "tps_gt": 0,
+                       "fps": nodes_fps,
+                       "fns": nodes_fns,
+                       "merges": 0,
+                       "splits": 0}
 
     return node_errors, topological_errors
 
@@ -82,10 +103,13 @@ def construct_matching_graph(db_host,
         if len(nbs)>2:
             raise ValueError("Branching in graph, abort.")
 
-    # Label connected components:
-    rec_graph = label_connected_components(rec_graph,
-                                           solve_number)
-
+    rec_ccs = 0
+    if rec_graph.number_of_nodes() > 0: 
+        # Label connected components:
+        rec_graph = label_connected_components(rec_graph,
+                                               solve_number)
+        rec_ccs = len(set([data["cc_{}".format(solve_number)] for v, data in rec_graph.nodes(data=True)]))
+    
 
     # Get voxel lines:
     rec_lines = []
@@ -130,8 +154,11 @@ def construct_matching_graph(db_host,
     gt_graph.add_edges_from(edge_list)
 
     # Label connected components:
-    gt_graph = label_connected_components(gt_graph,
-                                          solve_number)
+    gt_ccs = 0
+    if gt_graph.number_of_nodes() > 0:
+        gt_graph = label_connected_components(gt_graph,
+                                              solve_number)
+        gt_ccs = len(set([data["cc_{}".format(solve_number)] for v,data in gt_graph.nodes(data=True)]))
 
     # Get voxel lines:
     gt_lines = []
@@ -172,6 +199,9 @@ def construct_matching_graph(db_host,
                                    list(rec_component_map.keys()),
                                    distance_threshold,
                                    voxel_size)
+
+    matching_graph.rec_ccs = rec_ccs
+    matching_graph.gt_ccs = gt_ccs
 
     return matching_graph, gt_graph, rec_graph, gt_component_map, rec_component_map
 
@@ -353,7 +383,6 @@ def interpolate_cc(nx_graph, start_vertex_id, end_vertex_id, voxel_size):
             y_current = nx_graph.nodes()[current]["y"]
             z_current = nx_graph.nodes()[current]["z"]
 
-            
             x_next = nx_graph.nodes()[next_]["x"]
             y_next = nx_graph.nodes()[next_]["y"]
             z_next = nx_graph.nodes()[next_]["z"]
@@ -478,24 +507,25 @@ class MatchingGraph(nx.Graph):
         rec_positions = np.array(list(rec_nodes.values()))
         rec_node_ids = list(rec_nodes.keys())
 
-        gt_tree = KDTree(gt_positions * voxel_size)
-        rec_tree = KDTree(rec_positions * voxel_size)
+        if len(gt_positions)>0 and len(rec_positions)>0:
+            gt_tree = KDTree(gt_positions * voxel_size)
+            rec_tree = KDTree(rec_positions * voxel_size)
 
-        """
-        From the docs:
-        KDTree.query_ball_tree(other, r, p=2.0, eps=0)
-        For each element self.data[i] of this tree,
-        results[i] is a list of the indices of its neighbors in other.data.
-        """
+            """
+            From the docs:
+            KDTree.query_ball_tree(other, r, p=2.0, eps=0)
+            For each element self.data[i] of this tree,
+            results[i] is a list of the indices of its neighbors in other.data.
+            """
 
-        results = gt_tree.query_ball_tree(rec_tree, r=distance_threshold)
+            results = gt_tree.query_ball_tree(rec_tree, r=distance_threshold)
 
-        for gt_idx in range(len(results)):
-            gt_node_id = gt_node_ids[gt_idx]
+            for gt_idx in range(len(results)):
+                gt_node_id = gt_node_ids[gt_idx]
 
-            for rec_idx in results[gt_idx]:
-                rec_node_id = rec_node_ids[rec_idx]
-                self.add_edge(gt_node_id, rec_node_id, edge_type="matching")
+                for rec_idx in results[gt_idx]:
+                    rec_node_id = rec_node_ids[rec_idx]
+                    self.add_edge(gt_node_id, rec_node_id, edge_type="matching")
 
 
     def get_edge_conflicts(self):
