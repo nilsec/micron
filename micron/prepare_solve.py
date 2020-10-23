@@ -132,7 +132,8 @@ def create_solve_config(solve_number,
                         comb_angle_factor=14,
                         start_edge_prior=180,
                         selection_cost=-80,
-                        time_limit=120):
+                        time_limit=120,
+                        context=400):
 
     config = configparser.ConfigParser()
     config.add_section('Solve')
@@ -140,7 +141,7 @@ def create_solve_config(solve_number,
     config.set('Solve', 'comb_angle_factor', str(comb_angle_factor))
     config.set('Solve', 'start_edge_prior', str(start_edge_prior))
     config.set('Solve', 'selection_cost', str(selection_cost))
-    config.set('Solve', 'context', "400, 400, 400")
+    config.set('Solve', 'context', "{}, {}, {}".format(context, context, context))
     config.set('Solve', 'daisy_solve', os.path.join(os.path.abspath(os.path.dirname(__file__)), 
                                                     "solve/daisy_solve.py"))
     config.set('Solve', 'solve_block', os.path.join(os.path.abspath(os.path.dirname(__file__)), 
