@@ -32,7 +32,7 @@ def evaluate(matching_graph,
                                                                                                  optimality_gap=optimality_gap,
                                                                                                  time_limit=time_limit)
 
-        topological_errors = {"n_gt": len(labels_gt), "n_rec": len(labels_rec), "splits": num_splits, "merges": num_merges, "fps": num_fps, "fns": num_fns}
+        topological_errors = {"n_gt": len(set(v for v in labels_gt.values())), "n_rec": len(set([v for v in labels_rec.values()])), "splits": num_splits, "merges": num_merges, "fps": num_fps, "fns": num_fns}
         matching_graph.import_node_matches(node_matches)
         node_errors = matching_graph.get_stats()
 
