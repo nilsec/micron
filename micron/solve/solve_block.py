@@ -47,7 +47,7 @@ def solve_in_block(db_host,
 
         logger.debug("Solving in block %s", block)
 
-        if check_function(block, 'solve_s{}_g{}'.format(solve_number, graph_number), db_name, db_host):
+        if check_function(graph_provider.database, block, 'solve_s{}_g{}'.format(solve_number, graph_number)):
             client.release_block(block, 0)
             continue
 
@@ -63,7 +63,7 @@ def solve_in_block(db_host,
         if num_edges == 0:
             logger.info("No edges in roi %s. Skipping"
                         % block.read_roi)
-            write_done(block, 'solve_s{}_g{}'.format(solve_number, graph_number), db_name, db_host)
+            write_done(graph_provider.database, block, 'solve_s{}_g{}'.format(solve_number, graph_number))
             client.release_block(block, 0)
             continue
 
@@ -100,14 +100,29 @@ def solve_in_block(db_host,
                        num_edges,
                        time.time() - start_time))
 
+        logger.info("Validating graph...")
+        validate_block(graph_provider, block, selected_attr, solved_attr)
+
         logger.info("Write done")
-        write_done(block, 'solve_s{}_g{}'.format(solve_number, graph_number), db_name, db_host)
+        write_done(graph_provider.database, block, 'solve_s{}_g{}'.format(solve_number, graph_number))
 
         logger.info("Release block")
         client.release_block(block, 0)
 
-
     return 0
+
+def validate_block(graph_provider, block, selected_attr, solved_attr):
+    graph = graph_provider.get_graph(
+                        block.write_roi,
+                        nodes_filter={selected_attr: True, solved_attr: True},
+                        edges_filter={selected_attr: True, solved_attr: True})
+
+    for v in graph.nodes():
+        if len([v for v in graph.neighbors(v)])>2:
+            logger.info("Graph has branch, abort")
+            assert(False)
+        else:
+            logger.info("Passed")
 
 
 if __name__ == "__main__":

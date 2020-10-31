@@ -95,7 +95,14 @@ def extract_edges_in_block(
         graph_number,
         block):
 
-    if check_function(block, "edges_g{}".format(graph_number), db_name, db_host):
+    graph_provider = MongoDbGraphProvider(db_name,
+                                          db_host,
+                                          mode='r+',
+                                          position_attribute=['z', 'y', 'x'],
+                                          directed=False,
+                                          edges_collection='edges_g{}'.format(graph_number))
+
+    if check_function(graph_provider.database, block, "edges_g{}".format(graph_number)):
         return 0
 
     logger.debug(
@@ -104,12 +111,6 @@ def extract_edges_in_block(
 
     start = time.time()
 
-    graph_provider = MongoDbGraphProvider(db_name,
-                                          db_host,
-                                          mode='r+',
-                                          position_attribute=['z', 'y', 'x'],
-                                          directed=False,
-                                          edges_collection='edges_g{}'.format(graph_number))
 
     soft_mask_array = daisy.open_ds(soft_mask_container,
                                     soft_mask_dataset)
@@ -118,7 +119,7 @@ def extract_edges_in_block(
 
     if graph.number_of_nodes() == 0:
         logger.info("No nodes in roi %s. Skipping", block.read_roi)
-        write_done(block, 'edges_g{}'.format(graph_number), db_name, db_host)
+        write_done(graph_provider.database, block, 'edges_g{}'.format(graph_number))
         return 0
 
     logger.debug(
@@ -198,7 +199,7 @@ def extract_edges_in_block(
     else:
         logger.debug("No pairs in block, skip")
 
-    write_done(block, 'edges_g{}'.format(graph_number), db_name, db_host)
+    write_done(graph_provider.database, block, 'edges_g{}'.format(graph_number))
     return 0
 
 
