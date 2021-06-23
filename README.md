@@ -3,6 +3,8 @@
 
 Rendering of automatically reconstructed microtubules in selected, automatically segmented neurons in the Calyx, a 76 x 52 x 65 micron region of the Drosophila Melanogaster brain. Microtubules of the same color belong to the same neuron.
 
+See the corresponding [paper](https://link.springer.com/chapter/10.1007%2F978-3-030-59722-1_10) for further details.
+
 ## Prerequisites
 
 1. Install and start a mongodb instance:
